@@ -50,6 +50,8 @@ def get_thumb(parent: models.ImageAsset, requested, thumb_size) -> models.ImageA
             )
             thumb.save()
 
+            return thumb
+
 
 @register.filter
 def thumb_width(asset: models.ImageAsset, width: int):
