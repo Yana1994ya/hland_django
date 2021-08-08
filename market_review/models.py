@@ -21,15 +21,8 @@ class ImageAsset(models.Model):
 
     @property
     def url(self):
-        s3 = boto3.client("s3", **settings.ASSETS["config"])
-        return s3.generate_presigned_url(
-            'get_object',
-            Params={
-                'Bucket': self.bucket,
-                'Key': self.key
-            },
-            ExpiresIn=3600
-        )
+        return f"https://{self.bucket}.s3.amazonaws.com/{self.key}"
+
 
 # Create your models here.
 class Application(models.Model):
@@ -47,3 +40,29 @@ class Application(models.Model):
 
     def __str__(self):
         return self.short_name
+
+
+class NotableFeature(models.Model):
+    app = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE
+    )
+
+    title = models.CharField(max_length=250)
+    slug = models.SlugField()
+    text = models.TextField()
+
+    class Meta:
+        unique_together = [("app", "slug")]
+
+    def __str__(self):
+        return f"{self.app.short_name}: {self.title}"
+
+
+class FeatureImage(models.Model):
+    feature = models.ForeignKey(NotableFeature, on_delete=models.CASCADE)
+    caption = models.CharField(max_length=250)
+    image = models.ForeignKey(ImageAsset, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = [("feature", "image")]

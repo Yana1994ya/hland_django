@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load md thumb %}
+
+{% block body %}
+    <div class="row">
+        <div class="col-md-auto">
+            <img src="{{application.logo.url}}" alt="{{ application.short_name }}" />
+        </div>
+        <div class="col">
+            <a href="{{ application.url }}">
+                <h3>{{ application.long_name }}</h3>
+            </a>
+            {{ application.text|markdown }}
+        </div>
+    </div>
+    {% if application.notablefeature_set.count %}
+        <div class="features pt-2">
+            <h4>Notable features:</h4>
+            {% for feature in application.notablefeature_set.all %}
+                <div class="row">
+                    <div class="col-md-auto">
+                        {% for image in feature.featureimage_set.all %}
+                            <div>
+                                <a href="{{ image.image.url }}" data-lightbox="{{ image.id }}" data-title="{{ image.caption }}">
+                                    <img src="{{ image.image|thumb_width:180 }}" alt="{{ image.caption }}" />
+                                </a>
+                            </div>
+                        {% endfor %}
+                        <a href="{% url "feature_images" app_id=application.slug feature_slug=feature.slug %}">
+                            edit
+                        </a>
+                    </div>
+                    <div class="col">
+                        <h5>{{ feature.title }}</h5>
+                        {{ feature.text|markdown }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

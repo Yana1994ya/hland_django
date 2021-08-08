@@ -1,7 +1,7 @@
 import uuid
 
 import boto3
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from market_review import models, forms
 from django.conf import settings
 from os import path
@@ -24,7 +24,8 @@ def upload_file(image, old_asset):
     height, width = image.image.size
 
     s3.upload_fileobj(image.file, bucket, key, ExtraArgs={
-        "ContentType": image.content_type
+        "ContentType": image.content_type,
+        "ACL": "public-read"
     })
 
     asset = models.ImageAsset(
@@ -37,6 +38,7 @@ def upload_file(image, old_asset):
     asset.save()
 
     return asset
+
 
 # Create your views here.
 def upload_logo(request, app_id: str):
@@ -61,5 +63,56 @@ def upload_logo(request, app_id: str):
         {
             "application": application,
             "form": form
+        }
+    )
+
+
+def feature_images(request, app_id, feature_slug):
+    application = get_object_or_404(models.Application, slug=app_id)
+    feature = get_object_or_404(models.NotableFeature, slug=feature_slug)
+
+    if request.method == "GET":
+        form = forms.FeatureImageForm()
+    else:
+        form = forms.FeatureImageForm(
+            request.POST,
+            request.FILES
+        )
+
+        if form.is_valid():
+            image = models.FeatureImage(
+                feature=feature,
+                caption=form.cleaned_data["caption"],
+                image=upload_file(form.cleaned_data["image"], None)
+            )
+            image.save()
+
+            # Done, redirect back to get rid of the post and show the image
+            return redirect(
+                "feature_images",
+                app_id=app_id,
+                feature_slug=feature_slug
+            )
+
+
+    return render(
+        request,
+        "market_review/feature_images.html",
+        {
+            "application": application,
+            "feature": feature,
+            "form": form
+        }
+    )
+
+
+def application_page(request, app_id):
+    application = get_object_or_404(models.Application, slug=app_id)
+
+    return render(
+        request,
+        "market_review/application.html",
+        {
+            "application": application
         }
     )
