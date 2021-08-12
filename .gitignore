@@ -1,2 +1,5 @@
 .idea
 settings_local.py
+deployment
+certbot
+static

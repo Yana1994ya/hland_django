@@ -1,5 +1,5 @@
 import uuid
-
+from django.contrib.admin.views.decorators import staff_member_required
 import boto3
 from django.shortcuts import get_object_or_404, redirect, render
 from market_review import models, forms
@@ -41,7 +41,7 @@ def upload_file(image, old_asset):
     return asset
 
 
-# Create your views here.
+@staff_member_required
 def upload_logo(request, app_id: str):
     application = get_object_or_404(models.Application, slug=app_id)
 
@@ -73,6 +73,7 @@ def upload_logo(request, app_id: str):
     )
 
 
+@staff_member_required
 def feature_images(request, app_id, feature_slug):
     application = get_object_or_404(models.Application, slug=app_id)
     feature = get_object_or_404(application.notablefeature_set, slug=feature_slug)
@@ -99,7 +100,6 @@ def feature_images(request, app_id, feature_slug):
                 app_id=app_id,
                 feature_slug=feature_slug
             )
-
 
     return render(
         request,
