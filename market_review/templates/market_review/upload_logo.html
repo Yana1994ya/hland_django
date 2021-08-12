@@ -1,7 +1,17 @@
 {% extends "base.html" %}
 
 {% block body %}
-    <img src="{{ application.logo.url }}" alt="{{ application.short_name }}" />
+    <div class="back">
+        <a href="{% url "application" app_id=application.slug %}">Back to application view</a>
+    </div>
+    <div class="current-logo">
+        {% if application.logo %}
+            <p>Current logo</p>
+            <img src="{{ application.logo.url }}" alt="{{ application.short_name }}" />
+        {% else %}
+            <p>No logo currently uploaded</p>
+        {% endif %}
+    </div>
     <form action="{% url "upload_logo" app_id=application.slug %}"
           method="post"
           enctype="multipart/form-data">

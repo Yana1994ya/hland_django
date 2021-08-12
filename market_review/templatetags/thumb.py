@@ -36,7 +36,8 @@ def get_thumb(parent: models.ImageAsset, requested, thumb_size) -> models.ImageA
 
             s3.upload_fileobj(fh, bucket, key, ExtraArgs={
                 "ContentType": "image/png",
-                "ACL": "public-read"
+                "ACL": "public-read",
+                "CacheControl": "public, max-age=86400"
             })
 
             thumb = models.ImageAsset(

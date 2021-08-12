@@ -66,3 +66,20 @@ class FeatureImage(models.Model):
 
     class Meta:
         unique_together = [("feature", "image")]
+
+
+class MissingFeature(models.Model):
+    app = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE
+    )
+
+    slug = models.SlugField()
+    title = models.CharField(max_length=250)
+    text = models.TextField()
+
+    class Meta:
+        unique_together = [("app", "slug")]
+
+    def __str__(self):
+        return f"{self.app.short_name}: {self.title}"

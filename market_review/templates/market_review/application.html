@@ -1,41 +1,106 @@
 {% extends "base.html" %}
 {% load md thumb %}
 
+{% block title %}Market review - {{ application.short_name }}{% endblock %}
+
 {% block body %}
-    <div class="row">
-        <div class="col-md-auto">
-            <img src="{{application.logo.url}}" alt="{{ application.short_name }}" />
-        </div>
-        <div class="col">
-            <a href="{{ application.url }}">
-                <h3>{{ application.long_name }}</h3>
-            </a>
-            {{ application.text|markdown }}
-        </div>
-    </div>
-    {% if application.notablefeature_set.count %}
-        <div class="features pt-2">
-            <h4>Notable features:</h4>
-            {% for feature in application.notablefeature_set.all %}
-                <div class="row">
-                    <div class="col-md-auto">
-                        {% for image in feature.featureimage_set.all %}
-                            <div>
-                                <a href="{{ image.image.url }}" data-lightbox="{{ image.id }}" data-title="{{ image.caption }}">
-                                    <img src="{{ image.image|thumb_width:180 }}" alt="{{ image.caption }}" />
-                                </a>
-                            </div>
-                        {% endfor %}
-                        <a href="{% url "feature_images" app_id=application.slug feature_slug=feature.slug %}">
-                            edit
-                        </a>
+    <h1 class="pt-1">Hollyday Land - Market review.</h1>
+    <h2>Introduction.</h2>
+    <p>
+        Although there are many applications that are built around hiking and vacationing, usually those
+        applications aren't
+        trying to combine the two into a single useful package, also, those applications usually don’t have any
+        timed events
+        support (those are covered by a third category in which you specifically buy tickets).
+    </p>
+    <p>
+        Our application will attempt to combine the 3 different use cases into a single map so the user gets all
+        this
+        information in a glance instead of having to switch Apps.
+    </p>
+
+    <ul class="nav nav-tabs">
+        {% for other_app in applications %}
+            <li class="nav-item">
+                {% if other_app.pk == application.pk %}
+                    <a class="nav-link active" aria-current="page"
+                       href="{% url "application" app_id=other_app.slug %}">
+                        {{ other_app.short_name }}
+                    </a>
+                {% else %}
+                    <a class="nav-link" href="{% url "application" app_id=other_app.slug %}">
+                        {{ other_app.short_name }}
+                    </a>
+                {% endif %}
+            </li>
+
+        {% endfor %}
+    </ul>
+
+    <div class="application p-1 border-bottom border-start border-end">
+        <div class="row">
+            {% if application.logo %}
+                <div class="col-md-auto">
+                    <img src="{{ application.logo.url }}" alt="{{ application.short_name }}"/>
+                </div>
+            {% endif %}
+
+            <div class="col">
+                <a href="{{ application.url }}">
+                    <h3>{{ application.long_name }}</h3>
+                </a>
+                {{ application.text|markdown }}
+
+                {% if request.user.is_superuser %}
+                    <div class="admin">
+                        <a href="{% url "upload_logo" app_id=application.slug %}">edit logo</a>
                     </div>
-                    <div class="col">
+                {% endif %}
+            </div>
+
+        </div>
+        {% if application.notablefeature_set.count %}
+            <div class="features pt-2">
+                <h4>Notable features:</h4>
+                {% for feature in application.notablefeature_set.all %}
+                    <div class="row">
+                        <div class="col-md-auto">
+                            {% for image in feature.featureimage_set.all %}
+                                <div>
+                                    <a href="{{ image.image.url }}" data-lightbox="{{ image.id }}"
+                                       data-title="{{ image.caption }}">
+                                        <img src="{{ image.image|thumb_width:180 }}"
+                                             alt="{{ image.caption }}"/>
+                                    </a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="col">
+                            <h5>{{ feature.title }}</h5>
+                            {{ feature.text|markdown }}
+                            {% if request.user.is_superuser %}
+                                <div class="admin">
+                                        <a href="{% url "feature_images" app_id=application.slug feature_slug=feature.slug %}">
+                                            edit images
+                                        </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if application.missingfeature_set.count %}
+            <div class="missing-features pt-2">
+                <h4>Missing features:</h4>
+                {% for feature in application.missingfeature_set.all %}
+                    <div class="feature">
                         <h5>{{ feature.title }}</h5>
                         {{ feature.text|markdown }}
                     </div>
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
 {% endblock %}
