@@ -38,6 +38,14 @@ class Application(models.Model):
         blank=True
     )
 
+    @property
+    def features(self):
+        return self.notablefeature_set.prefetch_related(
+            "featureimage_set",
+            "featureimage_set__image",
+            "featureimage_set__image__imageasset_set"
+        )
+
     def __str__(self):
         return self.short_name
 
@@ -51,6 +59,7 @@ class NotableFeature(models.Model):
     title = models.CharField(max_length=250)
     slug = models.SlugField()
     text = models.TextField()
+    images = models.ManyToManyField(ImageAsset, through='FeatureImage')
 
     class Meta:
         unique_together = [("app", "slug")]

@@ -26,7 +26,7 @@ COPY hland hland
 # so the layer will be effected
 RUN mkdir market_review && touch market_review/init.py
 COPY manage.py manage.py
-COPY deployment/settings_local.dev.py hland/settings_local.py
+COPY deployment/settings.dev.py hland/settings.py
 
 RUN .virtualenv/bin/python manage.py collectstatic
 # Sync the static files with the S3 bucket
@@ -45,7 +45,7 @@ COPY hland hland
 COPY market_review market_review
 COPY manage.py manage.py
 COPY templates templates
-COPY deployment/settings_local.aws.py hland/settings_local.py
+COPY deployment/settings.aws.py hland/settings.py
 RUN mkdir static
 COPY --from=1 /root/project/static/staticfiles.json static/staticfiles.json
 

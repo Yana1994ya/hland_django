@@ -59,13 +59,13 @@
             </div>
 
         </div>
-        {% if application.notablefeature_set.count %}
+        {% if features %}
             <div class="features pt-2">
                 <h4>Notable features:</h4>
-                {% for feature in application.notablefeature_set.all %}
+                {% for feature in features %}
                     <div class="row">
                         <div class="col-md-auto">
-                            {% for image in feature.featureimage_set.all %}
+                            {% for image in feature.images %}
                                 <div>
                                     <a href="{{ image.image.url }}" data-lightbox="{{ image.id }}"
                                        data-title="{{ image.caption }}">
@@ -91,10 +91,10 @@
             </div>
         {% endif %}
 
-        {% if application.missingfeature_set.count %}
+        {% if missing %}
             <div class="missing-features pt-2">
                 <h4>Missing features:</h4>
-                {% for feature in application.missingfeature_set.all %}
+                {% for feature in missing %}
                     <div class="feature">
                         <h5>{{ feature.title }}</h5>
                         {{ feature.text|markdown }}

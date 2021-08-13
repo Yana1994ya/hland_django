@@ -1,5 +1,5 @@
 .idea
-settings_local.py
+hland/settings.py
 deployment
 certbot
 static

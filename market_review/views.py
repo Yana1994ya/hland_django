@@ -1,10 +1,14 @@
-import uuid
-from django.contrib.admin.views.decorators import staff_member_required
-import boto3
-from django.shortcuts import get_object_or_404, redirect, render
-from market_review import models, forms
-from django.conf import settings
 from os import path
+from typing import Optional
+import uuid
+
+import boto3
+from django.conf import settings
+from django.contrib.admin.views.decorators import staff_member_required
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
+
+from market_review import forms, models, features
 
 
 def upload_file(image, old_asset):
@@ -113,9 +117,20 @@ def feature_images(request, app_id, feature_slug):
     )
 
 
-def application_page(request, app_id):
-    application = get_object_or_404(models.Application, slug=app_id)
-    applications = list(models.Application.objects.order_by('short_name'))
+def application_page(request, app_id: Optional[str]):
+    applications = list(models.Application.objects.select_related("logo").order_by('short_name'))
+    application = None
+
+    if app_id is None:
+        application = applications[0]
+    else:
+        for app in applications:
+            if app.slug == app_id:
+                application = app
+                break
+
+    if application is None:
+        raise Http404("application not found")
 
     return render(
         request,
@@ -123,21 +138,8 @@ def application_page(request, app_id):
         {
             "application": application,
             "applications": applications,
-            "category": "market_review"
-        }
-    )
-
-
-def home(request):
-    applications = list(models.Application.objects.order_by('short_name'))
-    application = applications[0]
-
-    return render(
-        request,
-        "market_review/application.html",
-        {
-            "application": application,
-            "applications": applications,
+            "features": features.get_features(application.id),
+            "missing": list(application.missingfeature_set.all()),
             "category": "market_review"
         }
     )
