@@ -1,5 +1,6 @@
 import io
 import tempfile
+import uuid
 
 from PIL import Image
 import boto3

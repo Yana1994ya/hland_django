@@ -1,6 +1,4 @@
-import boto3
 from django.db import models
-from django.conf import settings
 
 
 class ImageAsset(models.Model):
@@ -46,7 +44,7 @@ class Application(models.Model):
             "featureimage_set__image__imageasset_set"
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.short_name
 
 
