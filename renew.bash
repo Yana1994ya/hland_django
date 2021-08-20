@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 set -Eeuo pipefail
-trap cleanup SIGINT SIGTERM ERR EXIT
 
 certbot certonly \
   --manual \
@@ -9,6 +8,10 @@ certbot certonly \
   --config-dir certbot/config \
   --work-dir certbot/work \
   --logs-dir certbot/logs \
+  --manual \
+  --preferred-challenges=http \
+  --manual-auth-hook ./auth.bash \
+  --manual-cleanup-hook ./auth.cleanup.bash \
   -d hollyland.iywebs.cloudns.ph \
   --force-renewal
 
