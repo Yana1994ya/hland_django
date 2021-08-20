@@ -4,22 +4,9 @@
 {% block title %}Market review - {{ application.short_name }}{% endblock %}
 
 {% block body %}
-    <h1 class="pt-1">Hollyday Land - Market review.</h1>
-    <h2>Introduction.</h2>
-    <p>
-        Although there are many applications that are built around hiking and vacationing, usually those
-        applications aren't
-        trying to combine the two into a single useful package, also, those applications usually don’t have any
-        timed events
-        support (those are covered by a third category in which you specifically buy tickets).
-    </p>
-    <p>
-        Our application will attempt to combine the 3 different use cases into a single map so the user gets all
-        this
-        information in a glance instead of having to switch Apps.
-    </p>
+    {% include "market_review/introduction.html" %}
 
-    <ul class="nav nav-tabs">
+    <ul class="nav nav-tabs d-print-none">
         {% for other_app in applications %}
             <li class="nav-item">
                 {% if other_app.pk == application.pk %}
@@ -33,11 +20,13 @@
                     </a>
                 {% endif %}
             </li>
-
         {% endfor %}
+        <li class="nav-item">
+            <a class="nav-link" href="{% url "market_review_summary" %}">Summary</a>
+        </li>
     </ul>
 
-    <div class="application p-1 border-bottom border-start border-end">
+    <div class="application p-2 border-bottom border-start border-end">
         <div class="row">
             {% if application.logo %}
                 <div class="col-md-auto">

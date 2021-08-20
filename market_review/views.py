@@ -8,7 +8,10 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
-from market_review import forms, models, features
+from market_review import features, forms, models, thumb_gen
+
+THUMB_WIDTH = 180
+THUMB_HEIGHT = THUMB_WIDTH * 20
 
 
 def upload_file(image, old_asset):
@@ -82,6 +85,20 @@ def feature_images(request, app_id, feature_slug):
     application = get_object_or_404(models.Application, slug=app_id)
     feature = get_object_or_404(application.notablefeature_set, slug=feature_slug)
 
+    thumbs = []
+    for image in models.FeatureImage.objects.filter(feature=feature):
+        thumbs.append((
+            image.caption,
+            thumb_gen.create_thumb(
+                url=image.image.url,
+                parent_id=image.image.id,
+                requested={
+                    "request_width": THUMB_WIDTH
+                },
+                thumb_size=(THUMB_WIDTH, THUMB_HEIGHT)
+            )
+        ))
+
     if request.method == "GET":
         form = forms.FeatureImageForm()
     else:
@@ -111,6 +128,7 @@ def feature_images(request, app_id, feature_slug):
         {
             "application": application,
             "feature": feature,
+            "thumbs": thumbs,
             "form": form,
             "category": "market_review"
         }
@@ -140,6 +158,19 @@ def application_page(request, app_id: Optional[str]):
             "applications": applications,
             "features": features.get_features(application.id),
             "missing": list(application.missingfeature_set.all()),
+            "category": "market_review"
+        }
+    )
+
+
+def summary(request):
+    applications = list(models.Application.objects.order_by('short_name'))
+
+    return render(
+        request,
+        "market_review/summary.html",
+        {
+            "applications": applications,
             "category": "market_review"
         }
     )

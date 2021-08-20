@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load md thumb %}
+
+{% block title %}Market review - Summary{% endblock %}
+
+{% block body %}
+    {% include "market_review/introduction.html" %}
+
+    <ul class="nav nav-tabs d-print-none">
+        {% for app in applications %}
+            <li class="nav-item">
+                <a class="nav-link" href="{% url "application" app_id=app.slug %}">
+                    {{ app.short_name }}
+                </a>
+            </li>
+        {% endfor %}
+        <li class="nav-item">
+            <a
+                    class="nav-link active"
+                    aria-current="page"
+                    href="{% url "market_review_summary" %}">
+                Summary
+            </a>
+        </li>
+    </ul>
+
+    <div class="application p-2 border-bottom border-start border-end">
+        <h2>Summary</h2>
+        <p>
+            Although there are many applications in the current store that deal with hiking
+            (or other outdoors activities that benefit from a map and modern device GPS function),
+            those applications focus primarily on just sports and not tourism.
+        </p>
+        <p>
+            On the other hand, applications that do focus on tourism, such as trip advisor, usually
+            only target urban, rather than nature, tourism. Tripadvisor, for example, can suggest you
+            visit a certain park, but once you're there, it won't suggest what you should do there,
+            what places are worth visiting inside, where can you see nice views in that park.
+        </p>
+        <p>
+            An application that combines both, moderated content from commercial tourism (where
+            business owners/employees can edit data regarding their business). As well as user content
+            (such as worthwhile tails, pictures and reviews) as well as a powerful parameterised
+            search & recommendation engine, will be able to attract younger tourists that like
+            outdoor activities as well as the occasional urban attraction.
+        </p>
+        <h3>Monetization</h3>
+        <p>
+            For our application to be sustainable, a monetization model is required to support
+            maintenance, future development and the infrastructure(backend servers). I suggest
+            trying to monetize businesses that want to appear(or be somehow highlighted) on the
+            map of attractions in the application. In my opinion this model can be the best
+            compromise between good user experience and sustainability.
+        </p>
+    </div>
+{% endblock %}

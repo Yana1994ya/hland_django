@@ -3,6 +3,8 @@ from typing import List, Optional
 
 from django.db import connection
 
+from market_review import models
+
 
 @dataclasses.dataclass
 class ImageAsset:
@@ -35,13 +37,23 @@ class Feature:
     images: List[FeatureImage]
 
 
-def _dictfetchall(cursor):
+def _dict_fetchall(cursor):
     "Return all rows from a cursor as a dict"
     columns = [col[0] for col in cursor.description]
     return [
         dict(zip(columns, row))
         for row in cursor.fetchall()
     ]
+
+
+def _pg_map(fn, pg_value):
+    result = []
+
+    for v in pg_value:
+        if v is not None:
+            result.append(fn(v))
+
+    return result
 
 
 def _map_image(row) -> ImageAsset:
@@ -53,7 +65,7 @@ def _map_image(row) -> ImageAsset:
         height=row["height"],
         request_width=row.get("request_width"),
         request_height=row.get("request_height"),
-        thumbs=list(map(_map_image, row.get("thumbs", [])))
+        thumbs=_pg_map(_map_image, row.get("thumbs", []))
     )
 
 
@@ -70,7 +82,7 @@ def _map_feature(row) -> Feature:
         slug=row["slug"],
         text=row["text"],
         title=row["title"],
-        images=list(map(_map_feature_image, row["images"]))
+        images=_pg_map(_map_feature_image, row["images"])
     )
 
 
@@ -78,6 +90,8 @@ def get_features(app_id: int) -> List[Feature]:
 
     with connection.cursor() as cursor:
         cursor.execute("SELECT * FROM features WHERE app_id = %s", [app_id])
-        data = _dictfetchall(cursor)
+        data = _dict_fetchall(cursor)
 
-        return list(map(_map_feature, data))
+        return _pg_map(_map_feature, data)
+
+

@@ -2,9 +2,17 @@
 {% load thumb %}
 
 {% block body %}
-    {% for image in feature.featureimage_set.all %}
-        <img src="{{ image.image|thumb_width:180 }}" />
+    {% for caption, thumb in thumbs %}
+        <div>
+            <p>{{ caption }}</p>
+            <img
+                    src="{{ thumb.url }}"
+                    width="{{ thumb.width }}"
+                    height="{{ thumb.height }}"
+                    alt="{{ caption }}" />
+        </div>
     {% endfor %}
+
     <form action="{% url "feature_images" app_id=application.slug feature_slug=feature.slug %}"
           method="post"
           enctype="multipart/form-data">
