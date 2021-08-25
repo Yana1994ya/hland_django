@@ -1,14 +1,16 @@
 from datetime import datetime
+import json
+import re
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import get_object_or_404, render, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-import re
-from tenbis import models
-import json
 import jwt
+
+from tenbis import models
 
 CODE_RE = re.compile("[0-9]{20}")
 
@@ -33,6 +35,7 @@ def homepage(request):
     coupon = list(models.Coupon.objects.filter(used=False).order_by("date")[0:1])
     print_url = None
     print_link = None
+    barcode_image = None
 
     if coupon:
         coupon = coupon[0]
@@ -46,13 +49,23 @@ def homepage(request):
         print_link = reverse("tenbis_print", kwargs={"token": token})
 
         print_url = "my.bluetoothprint.scheme://" + request.build_absolute_uri(print_link)
+        barcode_image = (
+                "https://www.scandit.com/wp-content/themes/scandit/barcode-generator.php?" +
+                urlencode({
+                    "symbology": "itf",
+                    "value": str(coupon.code),
+                    "size": "150",
+                    "ec": "L"
+                })
+        )
     else:
         coupon = None
 
     return render(
         request,
         "10bis/display.html",
-        {"coupon": coupon, "category": "10bis", "print_url": print_url, "print_link": print_link},
+        {"coupon": coupon, "category": "10bis", "print_url": print_url, "print_link": print_link,
+         "barcode_image": barcode_image},
     )
 
 
@@ -69,6 +82,7 @@ def mark_used(request, coupon_id):
 
     return redirect("tenbis")
 
+
 def show_print(request, token):
     decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     assert decoded.get("target") == "print"
@@ -79,11 +93,24 @@ def show_print(request, token):
     return HttpResponse(
         json.dumps({
             "0": {
-                "type": 2,
-                "value": coupon.code,
-                "width": 1500,
-                "height": 100,
+                "type": 1,
+                "path": (
+                        "https://www.scandit.com/wp-content/themes/scandit/barcode-generator.php?" +
+                        urlencode({
+                            "symbology": "itf",
+                            "value": str(coupon.code),
+                            "size": "200",
+                            "ec": "L"
+                        })
+                ),
                 "align": 1
+            },
+            "1": {
+                "type": 0,
+                "content": str(coupon.code),
+                "bold": 0,
+                "align": 1,
+                "format": 0
             }
         }),
         content_type="application/json"

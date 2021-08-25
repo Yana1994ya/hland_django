@@ -3,12 +3,20 @@
     {% if coupon %}
         <h1>Added {{ coupon.date|date:'Y-m-d' }}</h1>
         <p>Code: {{ coupon.code }}</p>
-        <a href="{{ print_url }}">print</a>
-        <a href="{{ print_link }}">view</a>
-        <form action="{% url "tenbis_used_coupon" coupon_id=coupon.pk %}" method="post">
-            {% csrf_token %}
-            <input type="submit" value="mark used" />
-        </form>
+        <p><img src="{{ barcode_image }}" alt="{{ coupon.code }}" /></p>
+
+        <div class="d-grid gap-2 d-md-flex">
+            <div class="container-fluid">
+                <a class="btn btn-primary" href="{{ print_url }}">print</a>
+            </div>
+            <div class="">
+                <form action="{% url "tenbis_used_coupon" coupon_id=coupon.pk %}" method="post">
+                    {% csrf_token %}
+                    <input class="btn btn-danger" type="submit" value="mark used"/>
+                </form>
+            </div>
+        </div>
+
     {% else %}
         <h1>No outstanding coupon</h1>
 
