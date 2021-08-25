@@ -6,3 +6,4 @@ class Coupon(models.Model):
     code = models.CharField(max_length=24, unique=True)
     date = models.DateTimeField(auto_now_add=True)
     used = models.BooleanField(default=False)
+    used_date = models.DateTimeField(null=True, default=None)

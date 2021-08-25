@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block body %}
+    {% if coupon %}
+        <h1>Added {{ coupon.date|date:'Y-m-d' }}</h1>
+        <p>Code: {{ coupon.code }}</p>
+        <a href="{{ print_url }}">print</a>
+        <a href="{{ print_link }}">view</a>
+        <form action="{% url "tenbis_used_coupon" coupon_id=coupon.pk %}" method="post">
+            {% csrf_token %}
+            <input type="submit" value="mark used" />
+        </form>
+    {% else %}
+        <h1>No outstanding coupon</h1>
+
+    {% endif %}
+{% endblock %}
