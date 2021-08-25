@@ -21,6 +21,7 @@ from django.conf import settings
 urlpatterns = [
     path('', homepage, name="homepage"),
     path('market_review/', include('market_review.urls')),
+    path('10bis/', include('tenbis.urls')),
     path('admin/', admin.site.urls),
 ]
 
