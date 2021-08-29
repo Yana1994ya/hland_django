@@ -3,8 +3,9 @@
     {% if coupon %}
         <h1>Added {{ coupon.date|date:'Y-m-d' }}</h1>
         <p>Code: {{ coupon.code }}</p>
-        <p><img src="{{ barcode_image }}" alt="{{ coupon.code }}" /></p>
+        <p><img src="{{ coupon.barcode }}" alt="{{ coupon.code }}" /></p>
 
+        {% comment %}
         <div class="d-grid gap-2 d-md-flex">
             <div class="container-fluid">
                 <a class="btn btn-primary" href="{{ print_url }}">print</a>
@@ -16,6 +17,12 @@
                 </form>
             </div>
         </div>
+        {% endcomment %}
+        <form action="{% url "tenbis" %}" method="post">
+            {% csrf_token %}
+            {{ form.count }}
+            <input type="submit" value="search" />
+        </form>
 
     {% else %}
         <h1>No outstanding coupon</h1>
