@@ -16,4 +16,5 @@ aws \
   s3 \
   cp \
   /tmp/acme_$CERTBOT_TOKEN \
-  s3://hland-assets/acme-challenge/$CERTBOT_TOKEN
+  s3://hland-assets/.well-known/acme-challenge/$CERTBOT_TOKEN \
+  --acl public-read

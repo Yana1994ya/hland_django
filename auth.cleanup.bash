@@ -6,4 +6,4 @@ aws \
   --profile private \
   s3 \
   rm \
-  s3://hland-assets/acme-challenge/$CERTBOT_TOKEN
+  s3://hland-assets/.well-known/acme-challenge/$CERTBOT_TOKEN
