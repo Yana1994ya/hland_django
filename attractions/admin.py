@@ -1,5 +1,12 @@
 from django.contrib import admin
 from attractions import models
 
+
 # Register your models here.
-admin.site.register(models.Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_filter = ["parent"]
+    list_display = ["name", "order"]
+    ordering = ["order"]
+
+
+admin.site.register(models.Category, CategoryAdmin)

@@ -46,8 +46,8 @@ def category_image(request, category_id: int):
     )
 
 
-def list_categories(request, parent_id:Optional[int]):
-    categories = models.Category.objects.filter(parent_id=parent_id)
+def list_categories(request, parent_id: Optional[int]):
+    categories = models.Category.objects.filter(parent_id=parent_id).order_by("order")
 
     def to_json(cat):
         image = None
