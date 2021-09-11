@@ -33,7 +33,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'market_review',
-    'tenbis'
+    'tenbis',
+    'attractions'
 ]
 
 MIDDLEWARE = [

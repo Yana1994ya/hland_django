@@ -28,7 +28,7 @@ def upload_file(image, old_asset):
     key = settings.ASSETS["prefix"] + "images/" + str(uuid.uuid4()) + ext
     bucket = settings.ASSETS["bucket"]
 
-    height, width = image.image.size
+    width, height = image.image.size
 
     s3.upload_fileobj(image.file, bucket, key, ExtraArgs={
         "ContentType": image.content_type,

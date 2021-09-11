@@ -23,9 +23,8 @@ COPY --from=0 /root/project/.virtualenv .virtualenv
 COPY --from=0 /root/project/.virtualenv_path .virtualenv_path
 COPY hland hland
 COPY tenbis tenbis
-# Market review doesn't have static files yet, when it does add it here
-# so the layer will be effected
-RUN mkdir market_review && touch market_review/init.py
+COPY market_review market_review
+COPY attractions attractions
 COPY manage.py manage.py
 COPY deployment/settings.dev.py hland/settings.py
 
@@ -45,6 +44,7 @@ COPY --from=0 /root/project/.virtualenv_path .virtualenv_path
 COPY hland hland
 COPY tenbis tenbis
 COPY market_review market_review
+COPY attractions attractions
 COPY manage.py manage.py
 COPY templates templates
 COPY deployment/settings.aws.py hland/settings.py
