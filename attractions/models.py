@@ -29,3 +29,21 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+
+class Attraction(models.Model):
+    name = models.CharField(max_length=250)
+
+    main_image = models.ForeignKey(
+        ImageAsset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    categories = models.ManyToManyField(Category)
+
+    long = models.FloatField()
+    lat = models.FloatField()
+
+    def __str__(self):
+        return self.name

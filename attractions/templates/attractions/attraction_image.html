@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load thumb %}
+
+{% block body %}
+    <h1>{{ attraction.name }}</h1>
+
+    {% if attraction.main_image %}
+        <img
+                    src="{{ attraction.main_image.url }}"
+                    width="{{ attraction.main_image.width }}"
+                    height="{{ attraction.main_image.height }}"
+                    alt="{{ attraction.name }}" />
+    {% endif %}
+
+    <form action="{% url "attraction_image" attraction_id=attraction.id %}"
+          method="post"
+          enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.image }}
+        {{ form.image.errors }}
+
+        <input type="submit" value="upload" />
+    </form>
+
+{% endblock %}
