@@ -1,5 +1,5 @@
 from os import path
-from typing import Optional
+from typing import NoReturn, Optional
 import uuid
 
 import boto3
@@ -12,6 +12,23 @@ from market_review import features, forms, models, thumb_gen
 
 THUMB_WIDTH = 180
 THUMB_HEIGHT = THUMB_WIDTH * 20
+
+
+def delete_asset(asset: Optional[models.ImageAsset]) -> NoReturn:
+    s3 = boto3.client("s3", **settings.ASSETS["config"])
+
+    if asset is None:
+        return
+
+    for child in asset.imageasset_set.all():
+        delete_asset(child)
+
+    s3.delete_object(
+        Bucket=asset.bucket,
+        Key=asset.key
+    )
+
+    asset.delete()
 
 
 def upload_file(image, old_asset):

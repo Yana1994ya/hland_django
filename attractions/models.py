@@ -40,6 +40,11 @@ class Attraction(models.Model):
         blank=True
     )
 
+    additional_images = models.ManyToManyField(
+        ImageAsset,
+        related_name="attraction_additional_image"
+    )
+
     categories = models.ManyToManyField(Category)
 
     long = models.FloatField()

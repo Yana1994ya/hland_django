@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block body %}
-    <h1>Found {{ count }} coupons</h1>
+    <h1>Found {{ count }} coupons</h1>  
     {% for coupon in coupons %}
-        <p><img src="{{ coupon.barcode }}" alt="{{ coupon.code }}" /></p>
+        <p><img src="{{ coupon.barcode }}" alt="{{ coupon.code }}" /><br />{{ coupon.code }}</p>
     {% endfor %}
     {% if count %}
         <p><a class="btn btn-primary" href="{{ print_url }}">print</a></p>

@@ -4,6 +4,7 @@ import re
 from urllib.parse import urlencode
 
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -18,6 +19,7 @@ CODE_RE = re.compile("[0-9]{20}")
 
 
 @csrf_exempt
+@login_required
 def homepage(request):
     if request.method == "POST" and request.content_type == "application/json":
         data = json.loads(request.body.decode("utf-8"))
@@ -31,9 +33,6 @@ def homepage(request):
 
             return HttpResponse("code added\n", content_type="text/plain")
 
-    if not request.user.is_authenticated:
-        return HttpResponseRedirect("/")
-
     coupon = list(models.Coupon.objects.filter(used=False).order_by("date")[0:1])
     print_url = None
     print_link = None
@@ -42,18 +41,6 @@ def homepage(request):
 
     if coupon:
         coupon = coupon[0]
-
-        token = jwt.encode(
-            {"target": "print", "coupon_id": coupon.pk},
-            settings.SECRET_KEY,
-            algorithm="HS256",
-        )
-
-        print_link = reverse("tenbis_print", kwargs={"token": token})
-
-        print_url = "my.bluetoothprint.scheme://" + request.build_absolute_uri(
-            print_link
-        )
 
         if request.POST:
             form = MultipleSearchForm(request.POST)
@@ -87,8 +74,6 @@ def homepage(request):
         {
             "coupon": coupon,
             "category": "10bis",
-            "print_url": print_url,
-            "print_link": print_link,
             "barcode_image": barcode_image,
             "form": form,
         },

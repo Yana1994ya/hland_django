@@ -3,23 +3,43 @@
 
 {% block body %}
     <h1>{{ attraction.name }}</h1>
-
-    {% if attraction.main_image %}
+    {% if thumb %}
         <img
-                    src="{{ attraction.main_image.url }}"
-                    width="{{ attraction.main_image.width }}"
-                    height="{{ attraction.main_image.height }}"
-                    alt="{{ attraction.name }}" />
+                src="{{ thumb.url }}"
+                width="{{ thumb.width }}"
+                height="{{ thumb.height }}"
+                alt="{{ attraction.name }}"/>
     {% endif %}
+
+    <h2>Additional images</h2>
+    {% for additional_image in additional_images %}
+        <img
+                src="{{ additional_image.thumb.url }}"
+                width="{{ additional_image.thumb.width }}"
+                height="{{ additional_image.thumb.height }}"
+                alt="{{ attraction.name }}"/>
+        <form action="{% url "attraction_image" attraction_id=attraction.id %}"
+              method="post"
+              enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="delete_additional" value="{{ additional_image.image.id }}"/>
+            <input type="submit" value="delete" />
+
+        </form>
+    {% endfor %}
 
     <form action="{% url "attraction_image" attraction_id=attraction.id %}"
           method="post"
           enctype="multipart/form-data">
         {% csrf_token %}
+        <p>Main image replace</p>
         {{ form.image }}
         {{ form.image.errors }}
+        <p>Additional image upload</p>
+        {{ form.additional_image }}
+        {{ form.additional_image.errors }}
 
-        <input type="submit" value="upload" />
+        <input type="submit" value="upload"/>
     </form>
 
 {% endblock %}

@@ -18,6 +18,15 @@ class ImageAsset(models.Model):
         return f"s3://{self.bucket}/{self.key}"
 
     @property
+    def to_json(self) -> dict:
+        return {
+            "url": self.url,
+            "width": self.width,
+            "height": self.height,
+            "size": self.size
+        }
+
+    @property
     def url(self):
         return f"https://{self.bucket}.s3.amazonaws.com/{self.key}"
 
