@@ -1,7 +1,9 @@
 import json
 from typing import Optional
 
+from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from attractions import forms, models
@@ -47,7 +49,7 @@ def category_image(request, category_id: int):
     )
 
 
-def main_image_thumb(image:Optional[ImageAsset]) -> Optional[ImageAsset]:
+def main_image_thumb(image: Optional[ImageAsset]) -> Optional[ImageAsset]:
     if image is None:
         return None
 
@@ -62,27 +64,35 @@ def main_image_thumb(image:Optional[ImageAsset]) -> Optional[ImageAsset]:
 
 
 @staff_member_required
-def attraction_image(request, attraction_id: int):
-    attraction = get_object_or_404(models.Attraction, pk=attraction_id)
+def edit_attraction(request, attraction_id: Optional[int]):
+    initial = {}
+
+    if attraction_id is not None:
+        attraction = get_object_or_404(models.Attraction, pk=attraction_id)
+
+        initial.update({
+            "name": attraction.name,
+            "long": attraction.long,
+            "lat": attraction.lat,
+        })
+
+        attraction_type = attraction.get_category(parent_id=6)
+        if attraction_type is not None:
+            initial["attraction_type"] = attraction_type
+
+        region = attraction.get_category(parent_id=1)
+        if region is not None:
+            initial["region"] = region
+    else:
+        attraction = models.Attraction()
 
     if request.method == "GET":
-        form = forms.AttractionImageForm()
+        form = forms.AttractionImageForm(initial=initial)
     else:
-        if "delete_additional" in request.POST:
-            for additional_id in request.POST.getlist("delete_additional"):
-                additional = attraction.additional_images.get(pk=int(additional_id))
-                delete_asset(additional)
-                attraction.additional_images.remove(additional)
-
-            # Done, redirect back to get rid of the post and show the image
-            return redirect(
-                attraction_image,
-                attraction_id=attraction_id
-            )
-
         form = forms.AttractionImageForm(
             request.POST,
-            request.FILES
+            request.FILES,
+            initial=initial
         )
 
         if form.is_valid():
@@ -92,7 +102,22 @@ def attraction_image(request, attraction_id: int):
                     old_asset=attraction.main_image
                 )
 
-                attraction.save()
+            attraction.name = form.cleaned_data["name"]
+            attraction.long = form.cleaned_data["long"]
+            attraction.lat = form.cleaned_data["lat"]
+
+            attraction.save()
+
+            # check if attraction_type is correct
+            attraction.set_category(
+                parent_id=6,
+                category_id=form.cleaned_data["attraction_type"]
+            )
+
+            attraction.set_category(
+                parent_id=1,
+                category_id=form.cleaned_data["region"]
+            )
 
             if form.cleaned_data["additional_image"]:
                 attraction.additional_images.add(upload_file(
@@ -100,28 +125,40 @@ def attraction_image(request, attraction_id: int):
                     old_asset=None
                 ))
 
-            # Done, redirect back to get rid of the post and show the image
-            return redirect(
-                attraction_image,
-                attraction_id=attraction_id
-            )
+            # Delete any additional image chosen for delete
+            for additional_id in request.POST.getlist("delete_additional"):
+                additional = attraction.additional_images.get(pk=int(additional_id))
+                delete_asset(additional)
+                attraction.additional_images.remove(additional)
 
-    additional_images = []
-    for image in attraction.additional_images.all():
-        additional_images.append({
-            "thumb": main_image_thumb(image),
-            "image": image
-        })
+            # Done, redirect back to get rid of the post and show the image
+            messages.add_message(request, messages.INFO, f'Attraction {attraction.name} is saved')
+
+            return redirect(
+                edit_attraction,
+                attraction_id=attraction.id
+            )
 
     return render(
         request,
-        "attractions/attraction_image.html",
+        "attractions/edit_attraction.html",
         {
             "attraction": attraction,
             "form": form,
-            "category": "attractions",
-            "thumb": main_image_thumb(attraction.main_image),
-            "additional_images": additional_images
+            "category": "attractions"
+        }
+    )
+
+
+def view_attractions(request, page_number: int = 1):
+    paginator = Paginator(models.Attraction.objects.all(), 30)
+    page = paginator.page(page_number)
+
+    return render(
+        request,
+        "attractions/attractions.html",
+        {
+            "page": page
         }
     )
 
@@ -143,8 +180,11 @@ def list_categories(request, parent_id: Optional[int]):
     )
 
 
-def list_attractions(request, category_id: int):
-    category = get_object_or_404(models.Category, pk=category_id)
+def fetch_attractions(request):
+    query_set = models.Attraction.objects.all()
+
+    for category_id in request.GET.getlist("category_id"):
+        query_set = query_set.filter(categories__id=int(category_id))
 
     def to_json(attr:models.Attraction):
         image = None
@@ -164,6 +204,6 @@ def list_attractions(request, category_id: int):
         }
 
     return HttpResponse(
-        json.dumps(list(map(to_json, category.attraction_set.all()))),
+        json.dumps(list(map(to_json, query_set))),
         content_type="application/json"
     )

@@ -1,3 +1,5 @@
+from typing import NoReturn, Optional
+
 from django.db import models
 
 # Create your models here.
@@ -49,6 +51,28 @@ class Attraction(models.Model):
 
     long = models.FloatField()
     lat = models.FloatField()
+
+    def get_category(self, parent_id: int) -> Optional[int]:
+        try:
+            return self.categories.get(parent_id=parent_id).id
+        except Category.DoesNotExist:
+            return None
+
+    def set_category(self, parent_id: int, category_id: int) -> NoReturn:
+        # check if attraction_type is correct
+        found = False
+
+        for type_category in self.categories.filter(parent_id=parent_id):
+            if type_category.id != category_id:
+                self.categories.remove(type_category)
+            else:
+                found = True
+
+        if not found:
+            self.categories.add(Category.objects.get(
+                parent_id=parent_id,
+                id=category_id
+            ))
 
     def __str__(self):
         return self.name
