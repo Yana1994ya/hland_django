@@ -52,6 +52,15 @@ class Attraction(models.Model):
     long = models.FloatField()
     lat = models.FloatField()
 
+    @classmethod
+    def qset_from_request(cls, request):
+        query_set = cls.objects.all()
+
+        for category_id in request.GET.getlist("category_id"):
+            query_set = query_set.filter(categories__id=int(category_id))
+
+        return query_set
+
     def get_category(self, parent_id: int) -> Optional[int]:
         try:
             return self.categories.get(parent_id=parent_id).id

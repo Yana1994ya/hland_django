@@ -1,4 +1,14 @@
+import io
+from os import path
+import tempfile
+from typing import Optional
+import uuid
+
+from PIL import Image
+import boto3
+from django.conf import settings
 from django.db import models
+import requests
 
 
 class ImageAsset(models.Model):
@@ -25,6 +35,121 @@ class ImageAsset(models.Model):
             "height": self.height,
             "size": self.size
         }
+
+    def landscape_thumb(self, width: int) -> 'ImageAsset':
+        if width > self.width:
+            return self
+
+        return self._create_thumb(
+            requested={
+                "request_width": width,
+                "request_height": width
+            },
+            thumb_size=(width, width)
+        )
+
+    def tall_thumb(self, width: int) -> 'ImageAsset':
+        if width > self.width:
+            return self
+
+        return self._create_thumb(
+            requested={
+                "request_width": width,
+                "request_height": width * 20
+            },
+            thumb_size=(width, width * 20)
+        )
+
+    def thumb_600(self) -> 'ImageAsset':
+        return self.landscape_thumb(600)
+
+    def thumb_300(self) -> 'ImageAsset':
+        return self.landscape_thumb(300)
+
+    def _create_thumb(self, requested, thumb_size) -> 'ImageAsset':
+        if self.parent_id is not None:
+            raise Exception("thumb creation is only possible on the original image")
+
+        try:
+            return ImageAsset.objects.get(parent_id=self.id, **requested)
+        except ImageAsset.DoesNotExist:
+            im = Image.open(
+                requests.get(self.url, stream=True).raw
+            )
+
+            im.thumbnail(thumb_size, Image.BICUBIC)
+
+            with tempfile.TemporaryFile(suffix=".png") as fh:
+                im.save(fh, "PNG")
+                fh.flush()
+                size = fh.tell()
+                fh.seek(0, io.SEEK_SET)
+
+                s3 = boto3.client("s3", **settings.ASSETS["config"])
+
+                key = settings.ASSETS["prefix"] + "images/" + str(uuid.uuid4()) + ".png"
+                bucket = settings.ASSETS["bucket"]
+
+                s3.upload_fileobj(fh, bucket, key, ExtraArgs={
+                    "ContentType": "image/png",
+                    "ACL": "public-read",
+                    "CacheControl": "public, max-age=86400"
+                })
+
+                thumb = ImageAsset(
+                    bucket=bucket,
+                    key=key,
+                    size=size,
+                    width=im.width,
+                    height=im.height,
+                    parent_id=self.id,
+                    **requested
+                )
+
+                thumb.save()
+
+                return thumb
+
+    def delete(self, *args, **kwargs):
+        s3 = boto3.client("s3", **settings.ASSETS["config"])
+
+        s3.delete_object(
+            Bucket=self.bucket,
+            Key=self.key
+        )
+
+        return super(ImageAsset, self).delete(*args, **kwargs)
+
+    @staticmethod
+    def upload_file(image, old_asset: Optional['ImageAsset']) -> 'ImageAsset':
+        s3 = boto3.client("s3", **settings.ASSETS["config"])
+
+        if old_asset is not None:
+            old_asset.delete()
+
+        _, ext = path.splitext(image.name)
+        key = settings.ASSETS["prefix"] + "images/" + str(uuid.uuid4()) + ext
+        bucket = settings.ASSETS["bucket"]
+
+        width, height = image.image.size
+
+        s3.upload_fileobj(image.file, bucket, key, ExtraArgs={
+            "ContentType": image.content_type,
+            "ACL": "public-read",
+            "CacheControl": "public, max-age=86400"
+        })
+
+        asset = ImageAsset(
+            bucket=bucket,
+            key=key,
+            size=image.size,
+            width=width,
+            height=height
+        )
+
+        asset.save()
+
+        return asset
 
     @property
     def url(self):

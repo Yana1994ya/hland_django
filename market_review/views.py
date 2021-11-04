@@ -1,68 +1,12 @@
-from os import path
-from typing import NoReturn, Optional
-import uuid
+from typing import Optional
 
-import boto3
-from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
-from market_review import features, forms, models, thumb_gen
+from market_review import forms, models
 
 THUMB_WIDTH = 180
-THUMB_HEIGHT = THUMB_WIDTH * 20
-
-
-def delete_asset(asset: Optional[models.ImageAsset]) -> NoReturn:
-    s3 = boto3.client("s3", **settings.ASSETS["config"])
-
-    if asset is None:
-        return
-
-    for child in asset.imageasset_set.all():
-        delete_asset(child)
-
-    s3.delete_object(
-        Bucket=asset.bucket,
-        Key=asset.key
-    )
-
-    asset.delete()
-
-
-def upload_file(image, old_asset):
-    s3 = boto3.client("s3", **settings.ASSETS["config"])
-
-    if old_asset is not None:
-        s3.delete_object(
-            Bucket=old_asset.bucket,
-            Key=old_asset.key
-        )
-        old_asset.delete()
-
-    _, ext = path.splitext(image.name)
-    key = settings.ASSETS["prefix"] + "images/" + str(uuid.uuid4()) + ext
-    bucket = settings.ASSETS["bucket"]
-
-    width, height = image.image.size
-
-    s3.upload_fileobj(image.file, bucket, key, ExtraArgs={
-        "ContentType": image.content_type,
-        "ACL": "public-read",
-        "CacheControl": "public, max-age=86400"
-    })
-
-    asset = models.ImageAsset(
-        bucket=bucket,
-        key=key,
-        size=image.size,
-        width=width,
-        height=height
-    )
-    asset.save()
-
-    return asset
 
 
 @staff_member_required
@@ -78,7 +22,7 @@ def upload_logo(request, app_id: str):
         )
 
         if form.is_valid():
-            application.logo = upload_file(form.cleaned_data["logo"], application.logo)
+            application.logo = models.ImageAsset.upload_file(form.cleaned_data["logo"], application.logo)
             application.save()
 
             return redirect(
@@ -106,14 +50,7 @@ def feature_images(request, app_id, feature_slug):
     for image in models.FeatureImage.objects.filter(feature=feature):
         thumbs.append((
             image.caption,
-            thumb_gen.create_thumb(
-                url=image.image.url,
-                parent_id=image.image.id,
-                requested={
-                    "request_width": THUMB_WIDTH
-                },
-                thumb_size=(THUMB_WIDTH, THUMB_HEIGHT)
-            )
+            image.image.tall_thumb(THUMB_WIDTH)
         ))
 
     if request.method == "GET":
@@ -128,7 +65,7 @@ def feature_images(request, app_id, feature_slug):
             image = models.FeatureImage(
                 feature=feature,
                 caption=form.cleaned_data["caption"],
-                image=upload_file(form.cleaned_data["image"], None)
+                image=models.ImageAsset.upload_file(form.cleaned_data["image"], None)
             )
             image.save()
 
@@ -173,7 +110,7 @@ def application_page(request, app_id: Optional[str]):
         {
             "application": application,
             "applications": applications,
-            "features": features.get_features(application.id),
+            # "features": features.get_features(application.id),
             "missing": list(application.missingfeature_set.all()),
             "category": "market_review"
         }

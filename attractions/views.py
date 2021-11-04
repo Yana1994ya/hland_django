@@ -7,9 +7,6 @@ from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from attractions import forms, models
-from market_review import thumb_gen
-from market_review.models import ImageAsset
-from market_review.views import delete_asset, upload_file
 
 
 @staff_member_required
@@ -25,7 +22,7 @@ def category_image(request, category_id: int):
         )
 
         if form.is_valid():
-            category.image = upload_file(
+            category.image = models.ImageAsset.upload_file(
                 form.cleaned_data["image"],
                 category.image
             )
@@ -46,20 +43,6 @@ def category_image(request, category_id: int):
             "form": form,
             "category": "attractions"
         }
-    )
-
-
-def main_image_thumb(image: Optional[ImageAsset]) -> Optional[ImageAsset]:
-    if image is None:
-        return None
-
-    return thumb_gen.create_thumb(
-        url=image.url,
-        parent_id=image.id,
-        requested={
-            "request_width": 900
-        },
-        thumb_size=(900, 900)
     )
 
 
@@ -97,7 +80,7 @@ def edit_attraction(request, attraction_id: Optional[int]):
 
         if form.is_valid():
             if form.cleaned_data["image"]:
-                attraction.main_image = upload_file(
+                attraction.main_image = models.ImageAsset.upload_file(
                     form.cleaned_data["image"],
                     old_asset=attraction.main_image
                 )
@@ -120,7 +103,7 @@ def edit_attraction(request, attraction_id: Optional[int]):
             )
 
             if form.cleaned_data["additional_image"]:
-                attraction.additional_images.add(upload_file(
+                attraction.additional_images.add(models.ImageAsset.upload_file(
                     form.cleaned_data["additional_image"],
                     old_asset=None
                 ))
@@ -128,16 +111,20 @@ def edit_attraction(request, attraction_id: Optional[int]):
             # Delete any additional image chosen for delete
             for additional_id in request.POST.getlist("delete_additional"):
                 additional = attraction.additional_images.get(pk=int(additional_id))
-                delete_asset(additional)
                 attraction.additional_images.remove(additional)
+
+                additional.delete()
 
             # Done, redirect back to get rid of the post and show the image
             messages.add_message(request, messages.INFO, f'Attraction {attraction.name} is saved')
 
-            return redirect(
-                edit_attraction,
-                attraction_id=attraction.id
-            )
+            if request.POST.get("next") == "exit":
+                return redirect(view_attractions)
+            else:
+                return redirect(
+                    edit_attraction,
+                    attraction_id=attraction.id
+                )
 
     return render(
         request,
@@ -163,14 +150,22 @@ def view_attractions(request, page_number: int = 1):
     )
 
 
-def list_categories(request, parent_id: Optional[int]):
-    categories = models.Category.objects.filter(parent_id=parent_id).order_by("order")
+def fetch_categories(request, parent_id: Optional[int]):
+    if parent_id is None:
+        # Root categories don't have any attractions directly
+        categories = models.Category.objects.filter(parent_id__isnull=True)
+    else:
+        # When not root, filter out categories that have attractions in them
+        categories = models.Category.objects.filter(
+            parent_id=parent_id,
+            attraction__in=models.Attraction.qset_from_request(request)
+        ).order_by("order").distinct()
 
     def to_json(cat):
         image = None
 
         if cat.image:
-            image = cat.image.url
+            image = cat.image.landscape_thumb(300).to_json
 
         return {"id": cat.pk, "name": cat.name, "image": image}
 
@@ -181,20 +176,15 @@ def list_categories(request, parent_id: Optional[int]):
 
 
 def fetch_attractions(request):
-    query_set = models.Attraction.objects.all()
-
-    for category_id in request.GET.getlist("category_id"):
-        query_set = query_set.filter(categories__id=int(category_id))
-
-    def to_json(attr:models.Attraction):
+    def to_json(attr: models.Attraction):
         image = None
 
         if attr.main_image:
-            image = main_image_thumb(attr.main_image).to_json
+            image = attr.main_image.landscape_thumb(900).to_json
 
         additional = []
         for add in attr.additional_images.all():
-            additional.append(main_image_thumb(add).to_json)
+            additional.append(add.landscape_thumb(900).to_json)
 
         return {
             "id": attr.pk,
@@ -204,6 +194,9 @@ def fetch_attractions(request):
         }
 
     return HttpResponse(
-        json.dumps(list(map(to_json, query_set))),
+        json.dumps(list(map(
+            to_json,
+            models.Attraction.qset_from_request(request)
+        ))),
         content_type="application/json"
     )

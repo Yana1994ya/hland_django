@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load thumb %}
 
 {% block body %}
     {% if attraction.id %}
@@ -52,7 +51,7 @@
                     <div class="row">
                         {% if attraction.main_image %}
                             <img
-                                    src="{{ attraction.main_image|thumb_width:600 }}"
+                                    src="{{ attraction.main_image.thumb_600.url }}"
                                     width="600"
                                     alt="{{ attraction.name }}"
                             />
@@ -66,7 +65,7 @@
                                 <div class="col-6">
                                     <div class="row">
                                         <img
-                                                src="{{ additional_image|thumb_width:300 }}"
+                                                src="{{ additional_image.thumb_300.url }}"
                                                 width="300"
                                                 alt="{{ attraction.name }}"
                                         />
@@ -114,7 +113,19 @@
             </div>
             <div class="row">
                 <div class="col-12">
-                    <button class="btn btn-primary" type="submit">Submit form</button>
+                    <button
+                            class="btn btn-primary"
+                            type="submit"
+                            name="next"
+                            value="stay"
+                    >Save</button>
+
+                    <button
+                            class="btn btn-primary"
+                            type="submit"
+                            name="next"
+                            value="exit"
+                    >Save & Exit</button>
                 </div>
             </div>
 
