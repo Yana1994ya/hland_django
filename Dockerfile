@@ -24,7 +24,7 @@ COPY --from=0 /root/project/.virtualenv_path .virtualenv_path
 COPY hland hland
 COPY tenbis tenbis
 COPY market_review market_review
-COPY attractions attractions
+COPY attractions2 attractions2
 COPY manage.py manage.py
 COPY deployment/settings.dev.py hland/settings.py
 
@@ -44,7 +44,7 @@ COPY --from=0 /root/project/.virtualenv_path .virtualenv_path
 COPY hland hland
 COPY tenbis tenbis
 COPY market_review market_review
-COPY attractions attractions
+COPY attractions2 attractions2
 COPY manage.py manage.py
 COPY templates templates
 COPY deployment/settings.aws.py hland/settings.py

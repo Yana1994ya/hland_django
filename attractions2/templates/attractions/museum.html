@@ -1,0 +1,17 @@
+{% extends "attractions/base_form.html" %}
+
+{% block form_title %}
+    {% if create %}
+        <h1>Create museum</h1>
+    {% else %}
+        <h1>Edit museum</h1>
+    {% endif %}
+{% endblock %}
+
+{% block extra_fields %}
+    <div class="col-4">
+        <label for="id_domain" class="form-label">Domain</label>
+        {{ form.domain }}
+    </div>
+{% endblock %}
+
