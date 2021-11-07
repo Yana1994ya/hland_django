@@ -1,17 +1,20 @@
 {% extends "base.html" %}
 
 {% block body %}
-    <h1>Museums</h1>
-    <div class="row">
-        {% for museum in page.object_list %}
-            <div class="row">
-                <a href="{% url "edit_museum" museum_id=museum.id %}">{{ museum.name }}</a>
-            </div>
-        {% endfor %}
-        <div class="row">
+    <div class="container">
+        <h1>Museums</h1>
+        <div class="row pb-3">
+            {% for museum in page.object_list %}
+                <div class="row">
+                    <a href="{% url "edit_museum" museum_id=museum.id %}">{{ museum.name }}</a>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="row pb-1">
             <a href="{% url "add_museum" %}">Create Museum</a>
         </div>
-    </div>
 
-    {{ pager.render }}
+        {{ pager.render }}
+    </div>
 {% endblock %}
