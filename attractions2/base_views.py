@@ -41,6 +41,7 @@ class EditView(View, abc.ABC):
                 "lat": instance.lat,
                 "long": instance.long,
                 "region": instance.region,
+                "address": instance.address
             }
 
     @abc.abstractmethod
@@ -54,6 +55,7 @@ class EditView(View, abc.ABC):
         instance.lat = cleaned_data["lat"]
         instance.long = cleaned_data["long"]
         instance.region = cleaned_data["region"]
+        instance.address = cleaned_data["address"]
 
         if cleaned_data["image"]:
             instance.main_image = models.ImageAsset.upload_file(

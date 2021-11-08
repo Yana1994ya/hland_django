@@ -12,6 +12,10 @@ class BaseAttractionForm(forms.Form):
         "class": "form-control"
     }), required=False)
 
+    address = forms.CharField(widget=forms.TextInput(attrs={
+        "class": "form-control"
+    }))
+
     website = forms.URLField(widget=forms.TextInput(attrs={
         "class": "form-control",
         "type": "url"
@@ -52,6 +56,58 @@ class BaseAttractionForm(forms.Form):
             "class": "form-control"
         }
     ))
+
+    def clean_name(self):
+        data = self.cleaned_data["name"]
+
+        if data is not None:
+            data = data \
+                .replace("\u2013", "") \
+                .replace("\t", " ") \
+                .strip()
+
+            while "  " in data:
+                data = data.replace("  ", " ")
+
+        return data
+
+    def clean_address(self):
+        data = self.cleaned_data["address"]
+
+        if data is not None:
+            data = data \
+                .replace("\u2013", "") \
+                .replace("\t", " ") \
+                .strip()
+
+            while "  " in data:
+                data = data.replace("  ", " ")
+
+        return data
+
+    def clean_description(self):
+        data = self.cleaned_data["description"]
+
+        if data is not None:
+            data = data \
+                .replace("\u8203", "") \
+                .replace("\u200b", "") \
+                .replace("\u2013", "-") \
+                .replace("\u2019", "'") \
+                .replace("\r", "") \
+                .strip()
+
+            while "\n\n\n" in data:
+                data = data.replace("\n\n\n", "\n\n")
+
+            data = "\n".join(
+                map(
+                    str.rstrip,
+                    data.split("\n")
+                )
+            )
+
+        return data
 
 
 class MuseumForm(BaseAttractionForm):

@@ -154,6 +154,26 @@ class Region(models.Model):
         blank=True
     )
 
+    date_modified = models.DateTimeField(auto_now=True)
+
+    @property
+    def to_json(self):
+        res = self.to_short_json
+
+        if self.image is None:
+            res["image"] = None
+        else:
+            res["image"] = self.image.thumb_300().to_json
+
+        return res
+
+    @property
+    def to_short_json(self):
+        return {
+            "id": self.id,
+            "name": self.name
+        }
+
     def __str__(self):
         return self.name
 
@@ -176,18 +196,84 @@ class Attraction(models.Model):
         related_name="attraction_additional_image"
     )
 
+    address = models.CharField(max_length=150)
+
     lat = models.FloatField()
     long = models.FloatField()
 
     region = models.ForeignKey(Region, on_delete=models.CASCADE)
 
+    date_modified = models.DateTimeField(auto_now=True)
+
+    @property
+    def to_short_json(self):
+        json_result = {
+            "id": self.id,
+            "name": self.name,
+            "lat": self.lat,
+            "long": self.long,
+            "region": self.region.to_short_json,
+            "address": self.address
+        }
+
+        if self.main_image is None:
+            json_result["main_image"] = None
+        else:
+            json_result["main_image"] = self.main_image.thumb_600().to_json
+
+        return json_result
+
+    @property
+    def to_json(self):
+        json_result = self.to_short_json
+
+        json_result.update({
+            "description": self.description,
+            "website": self.website,
+        })
+
+        if self.main_image is None:
+            json_result["main_image"] = None
+        else:
+            json_result["main_image"] = self.main_image.thumb_600().to_json
+
+        additional_images = []
+        for image in self.additional_images.all():
+            additional_images.append(image.thumb_600().to_json)
+
+        json_result["additional_images"] = additional_images
+
+        return json_result
+
 
 class MuseumDomain(models.Model):
     name = models.CharField(max_length=100)
 
+    date_modified = models.DateTimeField(auto_now=True)
+
     def __str__(self):
         return self.name
+
+    @property
+    def to_json(self):
+        return {
+            "id": self.id,
+            "name": self.name
+        }
 
 
 class Museum(Attraction):
     domain = models.ForeignKey(MuseumDomain, on_delete=models.CASCADE)
+
+    @property
+    def to_json(self):
+        result = super().to_json
+
+        result.update({
+            "type": "museum",
+            "domain": self.domain.to_json
+        })
+
+        return result
+
+

@@ -3,7 +3,6 @@ from typing import Optional
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
-# Create your views here.
 from django.urls import reverse
 
 from attractions2 import forms, models
@@ -13,7 +12,7 @@ from attractions2.pager import Pager
 
 @staff_member_required
 def museums(request, page_number: int):
-    paginator = Paginator(models.Museum.objects.all(), 30)
+    paginator = Paginator(models.Museum.objects.all().order_by("name"), 30)
     page = paginator.page(page_number)
 
     return render(
