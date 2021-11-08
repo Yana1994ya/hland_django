@@ -191,4 +191,3 @@ class MuseumDomain(models.Model):
 
 class Museum(Attraction):
     domain = models.ForeignKey(MuseumDomain, on_delete=models.CASCADE)
-

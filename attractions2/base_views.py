@@ -3,8 +3,7 @@ from typing import NoReturn, Optional
 
 from django.contrib import messages
 from django.http import HttpResponseRedirect
-from django.shortcuts import redirect, render
-from django.urls import reverse
+from django.shortcuts import render
 from django.views import View
 
 from attractions2 import models
@@ -112,7 +111,7 @@ class EditView(View, abc.ABC):
             if request.POST.get("next") == "exit":
                 return self.redirect_index()
             else:
-                return HttpResponseRedirect(self.get_action(pk))
+                return HttpResponseRedirect(self.get_action(instance.id))
 
         return render(
             request,

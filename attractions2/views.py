@@ -1,10 +1,8 @@
 from typing import Optional
 
-from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
-
 # Create your views here.
 from django.urls import reverse
 
