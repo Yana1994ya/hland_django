@@ -276,4 +276,15 @@ class Museum(Attraction):
 
         return result
 
+    @property
+    def to_short_json(self):
+        result = super().to_short_json
+
+        result.update({
+            "type": "museum",
+            "domain": self.domain.to_json
+        })
+
+        return result
+
 

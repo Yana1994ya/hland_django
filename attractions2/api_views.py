@@ -45,11 +45,17 @@ def _get_museums_qset(request):
     if "region_id" in request.GET:
         qset = qset.filter(region_id=int(request.GET["region_id"]))
 
+    if "domain_id" in request.GET:
+        qset = qset.filter(domain_id=int(request.GET["domain_id"]))
+
     return qset
 
 
 def _get_museums_last_modified(request):
-    return _get_museums_qset(request).latest("date_modified").date_modified
+    try:
+        return _get_museums_qset(request).latest("date_modified").date_modified
+    except models.Museum.DoesNotExist:
+        return None
 
 
 # TODO: don't cache for now, rapidly changing
