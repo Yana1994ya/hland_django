@@ -235,11 +235,11 @@ class Attraction(models.Model):
         if self.main_image is None:
             json_result["main_image"] = None
         else:
-            json_result["main_image"] = self.main_image.thumb_600().to_json
+            json_result["main_image"] = self.main_image.landscape_thumb(900).to_json
 
         additional_images = []
         for image in self.additional_images.all():
-            additional_images.append(image.thumb_600().to_json)
+            additional_images.append(image.landscape_thumb(900).to_json)
 
         json_result["additional_images"] = additional_images
 

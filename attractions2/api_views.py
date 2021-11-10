@@ -10,7 +10,7 @@ def _get_regions_last_modified(request):
 
 
 # cache regions for 1 day
-@cache_page(60*60*24)
+@cache_page(60 * 60 * 24)
 @condition(last_modified_func=_get_regions_last_modified)
 def get_regions(request):
     return JsonResponse({
@@ -27,7 +27,7 @@ def _get_museum_domains_last_modified(request):
 
 
 # cache regions for 1 day
-@cache_page(60*60*24)
+@cache_page(60 * 60 * 24)
 @condition(last_modified_func=_get_museum_domains_last_modified)
 def get_museum_domains(request):
     return JsonResponse({
@@ -63,9 +63,9 @@ def _get_museums_last_modified(request):
 def get_museums(request):
     museums = []
 
-    for museum in _get_museums_qset(request)\
-            .defer("description", "website")\
-            .select_related("domain", "region")\
+    for museum in _get_museums_qset(request) \
+            .defer("description", "website") \
+            .select_related("domain", "region") \
             .order_by("name"):
         museums.append(museum.to_short_json)
 
@@ -73,3 +73,28 @@ def get_museums(request):
         "status": "ok",
         "museums": museums
     })
+
+
+def _get_museum_last_modified(request, museum_id: int):
+    try:
+        return models.Museum.objects.get(id=museum_id).date_modified
+    except models.Museum.DoesNotExist:
+        return None
+
+
+@condition(last_modified_func=_get_museum_last_modified)
+def get_museum(request, museum_id: int):
+    try:
+        return JsonResponse({
+            "status": "ok",
+            "museum": models.Museum.objects.get(id=museum_id).to_json
+        })
+    except models.Museum.DoesNotExist:
+        resp = JsonResponse({
+            "status": "error",
+            "code": "NotFound",
+            "message": "The requested museum doesn't exist"
+        })
+        resp.status_code = 404
+
+        return resp

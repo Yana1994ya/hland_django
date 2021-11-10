@@ -10,4 +10,5 @@ urlpatterns = [
     path("api/regions", api_views.get_regions),
     path("api/museum_domains", api_views.get_museum_domains),
     path("api/museums", api_views.get_museums),
+    path("api/museums/<int:museum_id>", api_views.get_museum),
 ]
