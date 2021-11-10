@@ -43,10 +43,16 @@ def _get_museums_qset(request):
     qset = models.Museum.objects.all()
 
     if "region_id" in request.GET:
-        qset = qset.filter(region_id=int(request.GET["region_id"]))
+        qset = qset.filter(region_id__in=list(map(
+            int,
+            request.GET.getlist("region_id"),
+        )))
 
     if "domain_id" in request.GET:
-        qset = qset.filter(domain_id=int(request.GET["domain_id"]))
+        qset = qset.filter(domain_id__in=list(map(
+            int,
+            request.GET.getlist("domain_id"),
+        )))
 
     return qset
 
