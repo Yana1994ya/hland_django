@@ -121,3 +121,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
 
 USER_ID_NAMESPACE = uuid.UUID("44104c1a-8ad5-4fc0-b59c-c3198bc1f67e")
+
+AUDIENCE = "hollyland.iywebs.cloudns.ph"

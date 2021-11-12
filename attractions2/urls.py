@@ -11,5 +11,8 @@ urlpatterns = [
     path("api/museum_domains", api_views.get_museum_domains),
     path("api/museums", api_views.get_museums),
     path("api/museums/<int:museum_id>", api_views.get_museum),
+    path("api/visit", api_views.visit),
+    path("api/history", api_views.history),
+    path("api/history/museums", api_views.history_museums),
     path("api/login", api_views.login),
 ]

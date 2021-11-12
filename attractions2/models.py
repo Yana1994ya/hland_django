@@ -299,3 +299,18 @@ class GoogleUser(models.Model):
     picture = models.CharField(max_length=250, blank=True, null=True)
     date_modified = models.DateTimeField(auto_now=True)
     anonymized = models.BooleanField()
+
+
+class History(models.Model):
+    user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
+    attraction = models.ForeignKey(Attraction, on_delete=models.CASCADE)
+    created = models.DateTimeField()
+    last_visited = models.DateTimeField()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', '-last_visited']),
+        ]
+
+        unique_together = [('user', 'attraction')]
+

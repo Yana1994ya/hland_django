@@ -1,4 +1,6 @@
+from datetime import datetime
 import json
+import time
 import uuid
 
 from django.conf import settings
@@ -7,6 +9,7 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import condition
 import jwt
+import pytz
 
 from attractions2 import models
 
@@ -157,9 +160,93 @@ def login(request):
         "token": jwt.encode(
             {
                 "id": str(user.id),
-                "exp": data["exp"],
+                "exp": int(time.time()) + 60*60*24*7,
+                "aud": settings.AUDIENCE
             },
             settings.SECRET_KEY,
             algorithm="HS256"
         )
+    })
+
+
+@csrf_exempt
+def visit(request):
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    data = json.loads(request.body)
+    token = data["token"]
+    attraction_id = int(data["id"])
+
+    user = jwt.decode(
+        token,
+        settings.SECRET_KEY,
+        audience=settings.AUDIENCE,
+        algorithms='HS256'
+    )
+
+    now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+
+    history, created = models.History.objects.get_or_create(
+        user_id=uuid.UUID(user["id"]),
+        attraction=models.Attraction.objects.get(id=attraction_id),
+        defaults={
+            "created": now,
+            "last_visited": now
+        }
+    )
+
+    if not created:
+        history.last_visited = now
+        history.save()
+
+    return JsonResponse({
+        "status": "ok"
+    })
+
+def with_user_id(fn):
+    def wrapped(request, *args, **kwargs):
+        if request.method != "POST":
+            return HttpResponse(status=405)
+
+        data = json.loads(request.body)
+        token = data["token"]
+
+        user = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            audience=settings.AUDIENCE,
+            algorithms='HS256'
+        )
+
+        user_id = uuid.UUID(user["id"])
+
+        return fn(request, user_id, *args, **kwargs)
+    return csrf_exempt(wrapped)
+
+
+@with_user_id
+def history(request, user_id: uuid.UUID):
+    return JsonResponse({
+        "status": "ok",
+        "visited": {
+            "museums": models.Museum.objects.filter(history__user_id=user_id).count()
+        }
+    })
+
+
+@with_user_id
+def history_museums(request, user_id: uuid.UUID):
+    museums = []
+
+    for museum in _get_museums_qset(request) \
+            .defer("description", "website") \
+            .select_related("domain", "region") \
+            .filter(history__user_id=user_id) \
+            .order_by("-history__last_visited"):
+        museums.append(museum.to_short_json)
+
+    return JsonResponse({
+        "status": "ok",
+        "museums": museums
     })
