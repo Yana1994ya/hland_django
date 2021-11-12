@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+import uuid
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -117,3 +119,5 @@ STATIC_ROOT = BASE_DIR / "static"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+
+USER_ID_NAMESPACE = uuid.UUID("44104c1a-8ad5-4fc0-b59c-c3198bc1f67e")

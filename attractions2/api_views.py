@@ -1,6 +1,12 @@
-from django.http import JsonResponse
+import json
+import uuid
+
+from django.conf import settings
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.cache import cache_page
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import condition
+import jwt
 
 from attractions2 import models
 
@@ -104,3 +110,56 @@ def get_museum(request, museum_id: int):
         resp.status_code = 404
 
         return resp
+
+
+@csrf_exempt
+def login(request):
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    data = json.loads(request.body)
+    token = data["token"]
+
+    jwks_client = jwt.PyJWKClient("https://www.googleapis.com/oauth2/v3/certs")
+    signing_key = jwks_client.get_signing_key_from_jwt(token)
+
+    data = jwt.decode(
+        token,
+        signing_key.key,
+        audience="1085250225192-bk570909cie3spgronk2dfu6rrv041jd.apps.googleusercontent.com",
+        algorithms='RS256'
+    )
+
+    # Allow possibility of anonymized users by keying by a
+    # hashed sub, rather than the original sub
+    user_id = uuid.uuid5(settings.USER_ID_NAMESPACE, data["sub"])
+
+    user, created = models.GoogleUser.objects.get_or_create(id=user_id, defaults={
+        # All users start as non anonymized
+        "anonymized": False
+    })
+
+    # Only update details if user is not anonymized
+    if not user.anonymized:
+        user.sub = data["sub"]
+        user.email = data.get("email")
+        user.email_verified = data.get("email_verified")
+        user.name = data["name"]
+        user.given_name = data.get("given_name")
+        user.family_name = data.get("family_name")
+        user.picture = data.get("picture")
+
+    # save in any case, to indicate a login
+    user.save()
+
+    return JsonResponse({
+        "status": "ok",
+        "token": jwt.encode(
+            {
+                "id": str(user.id),
+                "exp": data["exp"],
+            },
+            settings.SECRET_KEY,
+            algorithm="HS256"
+        )
+    })

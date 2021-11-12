@@ -288,3 +288,14 @@ class Museum(Attraction):
         return result
 
 
+class GoogleUser(models.Model):
+    id = models.UUIDField(primary_key=True)
+    sub = models.CharField(max_length=250, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    email_verified = models.BooleanField(blank=True, null=True)
+    name = models.CharField(max_length=250, blank=True, null=True)
+    given_name = models.CharField(max_length=250, blank=True, null=True)
+    family_name = models.CharField(max_length=250, blank=True, null=True)
+    picture = models.CharField(max_length=250, blank=True, null=True)
+    date_modified = models.DateTimeField(auto_now=True)
+    anonymized = models.BooleanField()
