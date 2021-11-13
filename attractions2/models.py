@@ -314,3 +314,15 @@ class History(models.Model):
 
         unique_together = [('user', 'attraction')]
 
+
+class Favorite(models.Model):
+    user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
+    attraction = models.ForeignKey(Attraction, on_delete=models.CASCADE)
+    created = models.DateTimeField()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', '-created']),
+        ]
+
+        unique_together = [('user', 'attraction')]

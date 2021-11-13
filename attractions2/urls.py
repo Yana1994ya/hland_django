@@ -13,6 +13,10 @@ urlpatterns = [
     path("api/museums/<int:museum_id>", api_views.get_museum),
     path("api/visit", api_views.visit),
     path("api/history", api_views.history),
+    path("api/history/delete", api_views.delete_history),
     path("api/history/museums", api_views.history_museums),
+    path("api/favorite", api_views.favorite),
+    path("api/favorites", api_views.favorites),
+    path("api/favorites/museums", api_views.favorites_museums),
     path("api/login", api_views.login),
 ]

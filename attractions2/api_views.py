@@ -1,3 +1,4 @@
+import dataclasses
 from datetime import datetime
 import json
 import time
@@ -5,6 +6,7 @@ import uuid
 
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
+import django.http.request
 from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import condition
@@ -169,40 +171,12 @@ def login(request):
     })
 
 
-@csrf_exempt
-def visit(request):
-    if request.method != "POST":
-        return HttpResponse(status=405)
+@dataclasses.dataclass(frozen=True)
+class UserRequest:
+    request: django.http.request.HttpRequest
+    user_id: uuid.UUID
+    data: dict
 
-    data = json.loads(request.body)
-    token = data["token"]
-    attraction_id = int(data["id"])
-
-    user = jwt.decode(
-        token,
-        settings.SECRET_KEY,
-        audience=settings.AUDIENCE,
-        algorithms='HS256'
-    )
-
-    now = datetime.utcnow().replace(tzinfo=pytz.UTC)
-
-    history, created = models.History.objects.get_or_create(
-        user_id=uuid.UUID(user["id"]),
-        attraction=models.Attraction.objects.get(id=attraction_id),
-        defaults={
-            "created": now,
-            "last_visited": now
-        }
-    )
-
-    if not created:
-        history.last_visited = now
-        history.save()
-
-    return JsonResponse({
-        "status": "ok"
-    })
 
 def with_user_id(fn):
     def wrapped(request, *args, **kwargs):
@@ -221,29 +195,127 @@ def with_user_id(fn):
 
         user_id = uuid.UUID(user["id"])
 
-        return fn(request, user_id, *args, **kwargs)
+        return fn(UserRequest(
+            request=request,
+            user_id=user_id,
+            data=data
+        ), *args, **kwargs)
+
     return csrf_exempt(wrapped)
 
 
 @with_user_id
-def history(request, user_id: uuid.UUID):
+def visit(request: UserRequest):
+    attraction_id = int(request.data["id"])
+
+    now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+
+    history_obj, created = models.History.objects.get_or_create(
+        user_id=request.user_id,
+        attraction=models.Attraction.objects.get(id=attraction_id),
+        defaults={
+            "created": now,
+            "last_visited": now
+        }
+    )
+
+    if not created:
+        history_obj.last_visited = now
+        history_obj.save()
+
+    return JsonResponse({
+        "status": "ok"
+    })
+
+
+@with_user_id
+def history(request: UserRequest):
     return JsonResponse({
         "status": "ok",
         "visited": {
-            "museums": models.Museum.objects.filter(history__user_id=user_id).count()
+            "museums": models.Museum.objects.filter(history__user_id=request.user_id).count()
         }
     })
 
 
 @with_user_id
-def history_museums(request, user_id: uuid.UUID):
+def delete_history(request: UserRequest):
+    models.History.objects.filter(user_id=request.user_id).delete()
+
+    return JsonResponse({
+        "status": "ok"
+    })
+
+
+@with_user_id
+def history_museums(request: UserRequest):
     museums = []
 
-    for museum in _get_museums_qset(request) \
+    for museum in _get_museums_qset(request.request) \
             .defer("description", "website") \
             .select_related("domain", "region") \
-            .filter(history__user_id=user_id) \
+            .filter(history__user_id=request.user_id) \
             .order_by("-history__last_visited"):
+        museums.append(museum.to_short_json)
+
+    return JsonResponse({
+        "status": "ok",
+        "museums": museums
+    })
+
+
+@with_user_id
+def favorite(request: UserRequest):
+    attraction_id = int(request.data["id"])
+
+    # If value is given, update favorite status
+    if "value" in request.data:
+        if request.data["value"]:
+            models.Favorite.objects.get_or_create(
+                user_id=request.user_id,
+                attraction_id=attraction_id,
+                defaults={
+                    "created": datetime.utcnow().replace(tzinfo=pytz.UTC)
+                }
+            )
+        else:
+            models.Favorite.objects.filter(
+                user_id=request.user_id,
+                attraction_id=attraction_id
+            ).delete()
+
+        return JsonResponse({
+            "status": "ok",
+        })
+    else:
+        return JsonResponse({
+            "status": "ok",
+            "value": models.Favorite.objects.filter(
+                user_id=request.user_id,
+                attraction_id=attraction_id
+            ).count() > 0
+        })
+
+
+@with_user_id
+def favorites(request: UserRequest):
+    return JsonResponse({
+        "status": "ok",
+        "visited": {
+            "museums": models.Museum.objects.filter(favorite__user_id=request.user_id).count()
+        }
+    })
+
+
+@with_user_id
+def favorites_museums(request: UserRequest):
+    museums = []
+
+    for museum in _get_museums_qset(request.request) \
+            .defer("description", "website") \
+            .select_related("domain", "region") \
+            .filter(favorite__user_id=request.user_id) \
+            .order_by("-favorite__created"):
         museums.append(museum.to_short_json)
 
     return JsonResponse({
