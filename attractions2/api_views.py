@@ -301,7 +301,7 @@ def favorite(request: UserRequest):
 def favorites(request: UserRequest):
     return JsonResponse({
         "status": "ok",
-        "visited": {
+        "favorites": {
             "museums": models.Museum.objects.filter(favorite__user_id=request.user_id).count()
         }
     })
