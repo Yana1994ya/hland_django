@@ -41,7 +41,8 @@ class EditView(View, abc.ABC):
                 "lat": instance.lat,
                 "long": instance.long,
                 "region": instance.region,
-                "address": instance.address
+                "address": instance.address,
+                "suitability": instance.suitability.all()
             }
 
     @abc.abstractmethod
@@ -62,6 +63,9 @@ class EditView(View, abc.ABC):
                 cleaned_data["image"],
                 old_asset=instance.main_image
             )
+
+    def handle_m2m(self, instance: models.Attraction, cleaned_data: dict) -> NoReturn:
+        instance.suitability.set(cleaned_data["suitability"])
 
     def get(self, request, **kwargs):
         pk = self.get_id(kwargs)
@@ -106,6 +110,8 @@ class EditView(View, abc.ABC):
                 instance.additional_images.remove(additional)
 
                 additional.delete()
+
+            self.handle_m2m(instance, form.cleaned_data)
 
             # Done, redirect back to get rid of the post and show the image
             messages.add_message(request, messages.INFO, self.success_message(instance))

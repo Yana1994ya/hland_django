@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body %}
+    <div class="container px-4 py-5">
+        <h2 class="pb-2 border-bottom">Attractions</h2>
+        <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
+            <!-- first row of categories -->
+            <div class="feature col">
+                <img src="{% static "attractions/museums.jpg" %}" width="150" height="100"
+                     alt="museums"/>
+                <h2>Museums</h2>
+                <p>View and edit the museums visible inside the application</p>
+            </div>
+
+            <div class="feature col">
+                <img src="{% static "attractions/wineries.jpg" %}" width="150" height="100"
+                     alt="wineries"/>
+                <h2>Wineries</h2>
+                <p>View and edit the wineries visible inside the application</p>
+
+            </div>
+            <div class="features col">
+
+            </div>
+            <!-- links for first row -->
+            <div class="features col mt-0">
+                <a href="{% url "museums" %}" class="icon-link">View museums &gt;</a>
+            </div>
+
+            <div class="features col mt-0">
+                <a href="{% url "wineries" %}" class="icon-link">View wineries &gt;</a>
+            </div>
+
+        </div>
+    </div>
+
+{% endblock %}

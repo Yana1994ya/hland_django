@@ -92,6 +92,42 @@ def get_museums(request):
     })
 
 
+def _get_wineries_qset(request):
+    qset = models.Winery.objects.all()
+
+    if "region_id" in request.GET:
+        qset = qset.filter(region_id__in=list(map(
+            int,
+            request.GET.getlist("region_id"),
+        )))
+
+    return qset
+
+
+def _get_wineries_last_modified(request):
+    try:
+        return _get_wineries_qset(request).latest("date_modified").date_modified
+    except models.Museum.DoesNotExist:
+        return None
+
+
+# TODO: don't cache for now, rapidly changing
+@condition(last_modified_func=_get_wineries_last_modified)
+def get_wineries(request):
+    wineries = []
+
+    for winery in _get_wineries_qset(request) \
+            .defer("description", "website") \
+            .select_related("region") \
+            .order_by("name"):
+        wineries.append(winery.to_short_json)
+
+    return JsonResponse({
+        "status": "ok",
+        "wineries": wineries
+    })
+
+
 def _get_museum_last_modified(request, museum_id: int):
     try:
         return models.Museum.objects.get(id=museum_id).date_modified
@@ -105,6 +141,31 @@ def get_museum(request, museum_id: int):
         return JsonResponse({
             "status": "ok",
             "museum": models.Museum.objects.get(id=museum_id).to_json
+        })
+    except models.Museum.DoesNotExist:
+        resp = JsonResponse({
+            "status": "error",
+            "code": "NotFound",
+            "message": "The requested museum doesn't exist"
+        })
+        resp.status_code = 404
+
+        return resp
+
+
+def _get_winery_last_modified(request, winery_id: int):
+    try:
+        return models.Winery.objects.get(id=winery_id).date_modified
+    except models.Museum.DoesNotExist:
+        return None
+
+
+@condition(last_modified_func=_get_winery_last_modified)
+def get_winery(request, winery_id: int):
+    try:
+        return JsonResponse({
+            "status": "ok",
+            "winery": models.Winery.objects.get(id=winery_id).to_json
         })
     except models.Museum.DoesNotExist:
         resp = JsonResponse({
@@ -233,7 +294,8 @@ def history(request: UserRequest):
     return JsonResponse({
         "status": "ok",
         "visited": {
-            "museums": models.Museum.objects.filter(history__user_id=request.user_id).count()
+            "museums": models.Museum.objects.filter(history__user_id=request.user_id).count(),
+            "wineries": models.Winery.objects.filter(history__user_id=request.user_id).count(),
         }
     })
 
@@ -251,7 +313,7 @@ def delete_history(request: UserRequest):
 def history_museums(request: UserRequest):
     museums = []
 
-    for museum in _get_museums_qset(request.request) \
+    for museum in models.Museum.objects \
             .defer("description", "website") \
             .select_related("domain", "region") \
             .filter(history__user_id=request.user_id) \
@@ -261,6 +323,40 @@ def history_museums(request: UserRequest):
     return JsonResponse({
         "status": "ok",
         "museums": museums
+    })
+
+
+@with_user_id
+def history_museums(request: UserRequest):
+    museums = []
+
+    for museum in models.Museum.objects \
+            .defer("description", "website") \
+            .select_related("domain", "region") \
+            .filter(history__user_id=request.user_id) \
+            .order_by("-history__last_visited"):
+        museums.append(museum.to_short_json)
+
+    return JsonResponse({
+        "status": "ok",
+        "museums": museums
+    })
+
+
+@with_user_id
+def history_wineries(request: UserRequest):
+    wineries = []
+
+    for winery in models.Winery.objects \
+            .defer("description", "website") \
+            .select_related("domain", "region") \
+            .filter(history__user_id=request.user_id) \
+            .order_by("-history__last_visited"):
+        wineries.append(winery.to_short_json)
+
+    return JsonResponse({
+        "status": "ok",
+        "wineries": wineries
     })
 
 
@@ -302,7 +398,8 @@ def favorites(request: UserRequest):
     return JsonResponse({
         "status": "ok",
         "favorites": {
-            "museums": models.Museum.objects.filter(favorite__user_id=request.user_id).count()
+            "museums": models.Museum.objects.filter(favorite__user_id=request.user_id).count(),
+            "wineries": models.Winery.objects.filter(favorite__user_id=request.user_id).count()
         }
     })
 
@@ -311,7 +408,7 @@ def favorites(request: UserRequest):
 def favorites_museums(request: UserRequest):
     museums = []
 
-    for museum in _get_museums_qset(request.request) \
+    for museum in models.Favorite.objects \
             .defer("description", "website") \
             .select_related("domain", "region") \
             .filter(favorite__user_id=request.user_id) \
@@ -321,4 +418,21 @@ def favorites_museums(request: UserRequest):
     return JsonResponse({
         "status": "ok",
         "museums": museums
+    })
+
+
+@with_user_id
+def favorites_wineries(request: UserRequest):
+    wineries = []
+
+    for winery in models.Winery.objects \
+            .defer("description", "website") \
+            .select_related("domain", "region") \
+            .filter(favorite__user_id=request.user_id) \
+            .order_by("-favorite__created"):
+        wineries.append(winery.to_short_json)
+
+    return JsonResponse({
+        "status": "ok",
+        "wineries": wineries
     })

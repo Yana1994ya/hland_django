@@ -1,0 +1,9 @@
+{% extends "attractions/base_form.html" %}
+
+{% block form_title %}
+    {% if create %}
+        <h1>Create winery</h1>
+    {% else %}
+        <h1>Edit winery</h1>
+    {% endif %}
+{% endblock %}

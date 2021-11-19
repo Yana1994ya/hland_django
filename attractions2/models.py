@@ -178,6 +178,16 @@ class Region(models.Model):
         return self.name
 
 
+class Suitability(models.Model):
+    name = models.CharField(max_length=250)
+
+    museum = models.BooleanField()
+    winery = models.BooleanField()
+
+    def __str__(self):
+        return self.name
+
+
 class Attraction(models.Model):
     name = models.CharField(max_length=250)
 
@@ -204,6 +214,8 @@ class Attraction(models.Model):
     region = models.ForeignKey(Region, on_delete=models.CASCADE)
 
     date_modified = models.DateTimeField(auto_now=True)
+
+    suitability = models.ManyToManyField(Suitability)
 
     @property
     def to_short_json(self):
@@ -283,6 +295,30 @@ class Museum(Attraction):
         result.update({
             "type": "museum",
             "domain": self.domain.to_json
+        })
+
+        return result
+
+
+class Winery(Attraction):
+    pass
+
+    @property
+    def to_json(self):
+        result = super().to_json
+
+        result.update({
+            "type": "winery"
+        })
+
+        return result
+
+    @property
+    def to_short_json(self):
+        result = super().to_short_json
+
+        result.update({
+            "type": "winery"
         })
 
         return result

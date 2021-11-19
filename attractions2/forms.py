@@ -110,9 +110,25 @@ class BaseAttractionForm(forms.Form):
         return data
 
 
+class BootstrapCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
+    template_name = 'forms/widgets/bootstrap_checkbox_select.html'
+
+
 class MuseumForm(BaseAttractionForm):
     domain = forms.ModelChoiceField(queryset=models.MuseumDomain.objects, widget=forms.Select(
         attrs={
             "class": "form-control"
         }
     ))
+
+    suitability = forms.ModelMultipleChoiceField(
+        queryset=models.Suitability.objects.filter(museum=True),
+        widget=BootstrapCheckboxSelectMultiple()
+    )
+
+
+class WineryForm(BaseAttractionForm):
+    suitability = forms.ModelMultipleChoiceField(
+        queryset=models.Suitability.objects.filter(winery=True),
+        widget=BootstrapCheckboxSelectMultiple()
+    )
