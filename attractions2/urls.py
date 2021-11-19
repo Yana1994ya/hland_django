@@ -19,7 +19,7 @@ def get_api_urls_for(model):
         path(
             "api/favorites/" + model.api_multiple_key(),
             api_views.favorites_list,
-            {"model": models.Museum}
+            {"model": model}
         ),
     ]
 
