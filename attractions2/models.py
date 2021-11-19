@@ -1,7 +1,7 @@
 import io
 from os import path
 import tempfile
-from typing import Optional
+from typing import List, Optional
 import uuid
 
 from PIL import Image
@@ -217,6 +217,46 @@ class Attraction(models.Model):
 
     suitability = models.ManyToManyField(Suitability)
 
+    @classmethod
+    def short_related(cls) -> List[str]:
+        return ["region"]
+
+    @classmethod
+    def short_query(cls):
+        return cls.objects \
+            .defer("description", "website") \
+            .select_related(*cls.short_related())
+
+    @classmethod
+    def favorite(cls, user_id: uuid.UUID):
+        return cls.short_query() \
+            .filter(favorite__user_id=user_id) \
+            .order_by("-favorite__created")
+
+    @classmethod
+    def history(cls, user_id: uuid.UUID):
+        return cls.short_query() \
+            .filter(history__user_id=user_id) \
+            .order_by("-history__last_visited")
+
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        raise NotImplementedError("api_multiple_key not implemented")
+
+    @classmethod
+    def api_single_key(cls) -> str:
+        raise NotImplementedError("api_single_key not implemented")
+
+    @classmethod
+    def explore_filter(cls, qset, request):
+        if "region_id" in request.GET:
+            qset = qset.filter(region_id__in=list(map(
+                int,
+                request.GET.getlist("region_id"),
+            )))
+
+        return qset
+
     @property
     def to_short_json(self):
         json_result = {
@@ -225,7 +265,8 @@ class Attraction(models.Model):
             "lat": self.lat,
             "long": self.long,
             "region": self.region.to_short_json,
-            "address": self.address
+            "address": self.address,
+            "type": self.api_single_key()
         }
 
         if self.main_image is None:
@@ -282,7 +323,6 @@ class Museum(Attraction):
         result = super().to_json
 
         result.update({
-            "type": "museum",
             "domain": self.domain.to_json
         })
 
@@ -293,35 +333,44 @@ class Museum(Attraction):
         result = super().to_short_json
 
         result.update({
-            "type": "museum",
             "domain": self.domain.to_json
         })
 
         return result
+
+    @classmethod
+    def short_related(cls) -> List[str]:
+        return super().short_related() + ["domain"]
+
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        return "museums"
+
+    @classmethod
+    def api_single_key(cls) -> str:
+        return "museum"
+
+    @classmethod
+    def explore_filter(cls, qset, request):
+        qset = super().explore_filter(qset, request)
+
+        if "domain_id" in request.GET:
+            qset = qset.filter(domain_id__in=list(map(
+                int,
+                request.GET.getlist("domain_id"),
+            )))
+
+        return qset
 
 
 class Winery(Attraction):
-    pass
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        return "wineries"
 
-    @property
-    def to_json(self):
-        result = super().to_json
-
-        result.update({
-            "type": "winery"
-        })
-
-        return result
-
-    @property
-    def to_short_json(self):
-        result = super().to_short_json
-
-        result.update({
-            "type": "winery"
-        })
-
-        return result
+    @classmethod
+    def api_single_key(cls) -> str:
+        return "winery"
 
 
 class GoogleUser(models.Model):
