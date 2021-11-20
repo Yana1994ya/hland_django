@@ -14,21 +14,24 @@ class SinglePage:
 
 
 class Pager:
-    def __init__(self, page: Page, view):
+    def __init__(self, page: Page, model, view):
         self.page = page
         self.view = view
+        self.model = model
 
     def render(self):
         previous_link = None
         if self.page.has_previous():
             previous_link = reverse(self.view, kwargs={
-                "page_number": self.page.previous_page_number()
+                "page_number": self.page.previous_page_number(),
+                "model": self.model
             })
 
         next_link = None
         if self.page.has_next():
             next_link = reverse(self.view, kwargs={
-                "page_number": self.page.next_page_number()
+                "page_number": self.page.next_page_number(),
+                "model": self.model
             })
 
         pages = []
@@ -38,7 +41,8 @@ class Pager:
                 number=page_num,
                 current=self.page.number == page_num,
                 link=reverse(self.view, kwargs={
-                    "page_number": page_num
+                    "page_number": page_num,
+                    "model": self.model
                 })
             ))
 

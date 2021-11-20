@@ -10,6 +10,9 @@
 
 {% block extra_fields %}
     <div class="col-4">
+        {% for error in form.domain.error_messages %}
+            <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
         <label for="id_domain" class="form-label">Domain</label>
         {{ form.domain }}
     </div>

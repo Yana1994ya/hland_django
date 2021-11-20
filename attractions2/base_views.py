@@ -3,7 +3,8 @@ from typing import NoReturn, Optional
 
 from django.contrib import messages
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views import View
 
 from attractions2 import models
@@ -11,24 +12,38 @@ from attractions2.forms import BaseAttractionForm
 
 
 class EditView(View, abc.ABC):
-    template_name = "attractions/base_form.html"
-    id_argument = "museum_id"
     form_class = BaseAttractionForm
+    model = models.Attraction
 
-    def get_id(self, kwargs: dict) -> int:
-        return kwargs[self.id_argument]
+    @classmethod
+    def id_argument(cls) -> str:
+        return cls.model.api_single_key() + "_id"
 
-    @abc.abstractmethod
-    def get_instance(self, pk: Optional[int]) -> models.Attraction:
-        raise NotImplementedError("get_instance is not implemented")
+    @classmethod
+    def get_id(cls, kwargs: dict) -> int:
+        return kwargs[cls.id_argument()]
 
-    @abc.abstractmethod
-    def get_action(self, pk: Optional[int]) -> str:
-        raise NotImplementedError("get_action is not implemented")
+    @classmethod
+    def get_instance(cls, pk: Optional[int]) -> models.Attraction:
+        if pk is None:
+            return cls.model()
+        else:
+            return cls.model.objects.get(id=pk)
 
-    @abc.abstractmethod
-    def redirect_index(self):
-        raise NotImplementedError("redirect_index is not implemented")
+    @classmethod
+    def get_action(cls, pk: Optional[int]) -> str:
+        if pk is None:
+            return reverse(f"add_{cls.model.api_single_key()}")
+        else:
+            return reverse(f"edit_{cls.model.api_single_key()}", kwargs={cls.id_argument(): pk})
+
+    @classmethod
+    def template_name(cls) -> str:
+        return f"attractions/{cls.model.api_single_key()}.html"
+
+    @classmethod
+    def redirect_index(cls):
+        return redirect(cls.model.api_multiple_key())
 
     def get_initial(self, instance: models.Attraction) -> dict:
         if instance.id is None:
@@ -76,7 +91,7 @@ class EditView(View, abc.ABC):
 
         return render(
             request,
-            self.template_name,
+            self.template_name(),
             {
                 "create": pk is None,
                 "instance": instance,
@@ -123,7 +138,7 @@ class EditView(View, abc.ABC):
 
         return render(
             request,
-            self.template_name,
+            self.template_name(),
             {
                 "create": pk is None,
                 "instance": instance,

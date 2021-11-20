@@ -123,12 +123,14 @@ class MuseumForm(BaseAttractionForm):
 
     suitability = forms.ModelMultipleChoiceField(
         queryset=models.Suitability.objects.filter(museum=True),
-        widget=BootstrapCheckboxSelectMultiple()
+        widget=BootstrapCheckboxSelectMultiple(),
+        required=False
     )
 
 
 class WineryForm(BaseAttractionForm):
     suitability = forms.ModelMultipleChoiceField(
         queryset=models.Suitability.objects.filter(winery=True),
-        widget=BootstrapCheckboxSelectMultiple()
+        widget=BootstrapCheckboxSelectMultiple(),
+        required=False
     )
