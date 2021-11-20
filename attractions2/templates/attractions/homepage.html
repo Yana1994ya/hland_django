@@ -18,10 +18,12 @@
                      alt="wineries"/>
                 <h2>Wineries</h2>
                 <p>View and edit the wineries visible inside the application</p>
-
             </div>
-            <div class="features col">
-
+            <div class="feature col">
+                <img src="{% static "attractions/zoos.jpg" %}" width="150" height="100"
+                     alt="zoos"/>
+                <h2>Zoos</h2>
+                <p>View and edit the zoos visible inside the application</p>
             </div>
             <!-- links for first row -->
             <div class="features col mt-0">
@@ -30,6 +32,10 @@
 
             <div class="features col mt-0">
                 <a href="{% url "wineries" %}" class="icon-link">View wineries &gt;</a>
+            </div>
+
+            <div class="features col mt-0">
+                <a href="{% url "zoos" %}" class="icon-link">View zoos &gt;</a>
             </div>
 
         </div>

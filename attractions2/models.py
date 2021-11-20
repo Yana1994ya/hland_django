@@ -183,6 +183,7 @@ class Suitability(models.Model):
 
     museum = models.BooleanField()
     winery = models.BooleanField()
+    zoo = models.BooleanField()
 
     def __str__(self):
         return self.name
@@ -298,6 +299,9 @@ class Attraction(models.Model):
 
         return json_result
 
+    def __str__(self):
+        return self.name
+
 
 class MuseumDomain(models.Model):
     name = models.CharField(max_length=100)
@@ -371,6 +375,17 @@ class Winery(Attraction):
     @classmethod
     def api_single_key(cls) -> str:
         return "winery"
+
+
+class Zoo(Attraction):
+
+    @classmethod
+    def api_single_key(cls) -> str:
+        return "zoo"
+
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        return "zoos"
 
 
 class GoogleUser(models.Model):

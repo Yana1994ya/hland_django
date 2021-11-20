@@ -56,3 +56,11 @@ class EditWinery(EditView):
 
     def success_message(self, instance: models.Winery) -> str:
         return f"Winery {instance.name} was saved successfully"
+
+
+class EditZoo(EditView):
+    form_class = forms.ZooForm
+    model = models.Zoo
+
+    def success_message(self, instance: models.Zoo) -> str:
+        return f"Zoo {instance.name} was saved successfully"

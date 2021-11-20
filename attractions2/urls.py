@@ -45,4 +45,5 @@ urlpatterns = [
                   path("api/login", api_views.login),
               ] + \
               get_api_urls_for(models.Museum, views.EditMuseum.as_view()) + \
-              get_api_urls_for(models.Winery, views.EditWinery.as_view())
+              get_api_urls_for(models.Winery, views.EditWinery.as_view()) + \
+              get_api_urls_for(models.Zoo, views.EditZoo.as_view())

@@ -134,3 +134,11 @@ class WineryForm(BaseAttractionForm):
         widget=BootstrapCheckboxSelectMultiple(),
         required=False
     )
+
+
+class ZooForm(BaseAttractionForm):
+    suitability = forms.ModelMultipleChoiceField(
+        queryset=models.Suitability.objects.filter(zoo=True),
+        widget=BootstrapCheckboxSelectMultiple(),
+        required=False
+    )
