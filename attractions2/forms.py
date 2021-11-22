@@ -12,14 +12,7 @@ class BaseAttractionForm(forms.Form):
         "class": "form-control"
     }), required=False)
 
-    address = forms.CharField(widget=forms.TextInput(attrs={
-        "class": "form-control"
-    }))
 
-    website = forms.URLField(widget=forms.TextInput(attrs={
-        "class": "form-control",
-        "type": "url"
-    }), required=False)
 
     long = forms.FloatField(widget=forms.TextInput(attrs={
         "class": "form-control",
@@ -48,12 +41,6 @@ class BaseAttractionForm(forms.Form):
         attrs={
             "class": "form-control",
             "accept": "image/*"
-        }
-    ))
-
-    region = forms.ModelChoiceField(queryset=models.Region.objects, widget=forms.Select(
-        attrs={
-            "class": "form-control"
         }
     ))
 
@@ -110,11 +97,28 @@ class BaseAttractionForm(forms.Form):
         return data
 
 
+class ManagedAttractionForm(BaseAttractionForm):
+    address = forms.CharField(widget=forms.TextInput(attrs={
+        "class": "form-control"
+    }))
+
+    website = forms.URLField(widget=forms.TextInput(attrs={
+        "class": "form-control",
+        "type": "url"
+    }), required=False)
+
+    region = forms.ModelChoiceField(queryset=models.Region.objects, widget=forms.Select(
+        attrs={
+            "class": "form-control"
+        }
+    ))
+
+
 class BootstrapCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
     template_name = 'forms/widgets/bootstrap_checkbox_select.html'
 
 
-class MuseumForm(BaseAttractionForm):
+class MuseumForm(ManagedAttractionForm):
     domain = forms.ModelChoiceField(queryset=models.MuseumDomain.objects, widget=forms.Select(
         attrs={
             "class": "form-control"
@@ -128,7 +132,7 @@ class MuseumForm(BaseAttractionForm):
     )
 
 
-class WineryForm(BaseAttractionForm):
+class WineryForm(ManagedAttractionForm):
     suitability = forms.ModelMultipleChoiceField(
         queryset=models.Suitability.objects.filter(winery=True),
         widget=BootstrapCheckboxSelectMultiple(),
@@ -136,9 +140,40 @@ class WineryForm(BaseAttractionForm):
     )
 
 
-class ZooForm(BaseAttractionForm):
+class ZooForm(ManagedAttractionForm):
     suitability = forms.ModelMultipleChoiceField(
         queryset=models.Suitability.objects.filter(zoo=True),
         widget=BootstrapCheckboxSelectMultiple(),
         required=False
     )
+
+
+class TrailForm(BaseAttractionForm):
+    suitability = forms.ModelMultipleChoiceField(
+        queryset=models.Suitability.objects.filter(trail=True),
+        widget=BootstrapCheckboxSelectMultiple(),
+        required=False
+    )
+
+    difficulty = forms.ChoiceField(
+        choices=models.Trail.TrailDifficulty.choices,
+        widget=forms.Select(attrs={
+            "class": "form-control"
+        })
+    )
+
+    length = forms.IntegerField(widget=forms.TextInput(attrs={
+        "class": "form-control",
+        "type": "number",
+        "max": "100000",
+        "min": "100",
+        "step": "1"
+    }))
+
+    elv_gain = forms.IntegerField(widget=forms.TextInput(attrs={
+        "class": "form-control",
+        "type": "number",
+        "max": "100000",
+        "min": "100",
+        "step": "1"
+    }))

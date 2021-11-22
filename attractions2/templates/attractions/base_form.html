@@ -25,21 +25,25 @@
                 {{ form.description }}
             </div>
 
-            <div class="col-12">
-                {% for error in form.website.error_messages %}
-                    <div class="invalid-feedback">{{ error }}</div>
-                {% endfor %}
-                <label for="id_website" class="form-label">Website</label>
-                {{ form.website }}
-            </div>
+            {% if form.website %}
+                <div class="col-12">
+                    {% for error in form.website.error_messages %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                    <label for="id_website" class="form-label">Website</label>
+                    {{ form.website }}
+                </div>
+            {% endif %}
 
-            <div class="col-12">
-                {% for error in form.address.error_messages %}
-                    <div class="invalid-feedback">{{ error }}</div>
-                {% endfor %}
-                <label for="id_website" class="form-label">Address</label>
-                {{ form.address }}
-            </div>
+            {% if form.address %}
+                <div class="col-12">
+                    {% for error in form.address.error_messages %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                    <label for="id_website" class="form-label">Address</label>
+                    {{ form.address }}
+                </div>
+            {% endif %}
 
             <div class="col-6">
                 {% for error in form.lat.error_messages %}
@@ -57,13 +61,15 @@
                 {{ form.long }}
             </div>
 
-            <div class="col-4">
-                {% for error in form.region.error_messages %}
-                    <div class="invalid-feedback">{{ error }}</div>
-                {% endfor %}
-                <label for="id_region" class="form-label">Region</label>
-                {{ form.region }}
-            </div>
+            {% if form.region %}
+                <div class="col-4">
+                    {% for error in form.region.error_messages %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                    <label for="id_region" class="form-label">Region</label>
+                    {{ form.region }}
+                </div>
+            {% endif %}
 
             <div class="col-4">
                 {% for error in form.suitability.error_messages %}

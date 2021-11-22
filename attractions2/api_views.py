@@ -224,6 +224,7 @@ def history(request: UserRequest):
         "visited": {
             "museums": models.Museum.objects.filter(history__user_id=request.user_id).count(),
             "wineries": models.Winery.objects.filter(history__user_id=request.user_id).count(),
+            "zoos": models.Zoo.objects.filter(history__user_id=request.user_id).count(),
         }
     })
 
@@ -276,7 +277,8 @@ def favorites(request: UserRequest):
         "status": "ok",
         "favorites": {
             "museums": models.Museum.objects.filter(favorite__user_id=request.user_id).count(),
-            "wineries": models.Winery.objects.filter(favorite__user_id=request.user_id).count()
+            "wineries": models.Winery.objects.filter(favorite__user_id=request.user_id).count(),
+            "zoos": models.Zoo.objects.filter(favorite__user_id=request.user_id).count()
         }
     })
 

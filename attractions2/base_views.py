@@ -67,11 +67,17 @@ class EditView(View, abc.ABC):
     def update_instance(self, instance: models.Attraction, cleaned_data: dict) -> NoReturn:
         instance.name = cleaned_data["name"]
         instance.description = cleaned_data["description"]
-        instance.website = cleaned_data["website"]
+        if "website" in cleaned_data:
+            instance.website = cleaned_data["website"]
+
         instance.lat = cleaned_data["lat"]
         instance.long = cleaned_data["long"]
-        instance.region = cleaned_data["region"]
-        instance.address = cleaned_data["address"]
+
+        if "region" in cleaned_data:
+            instance.region = cleaned_data["region"]
+
+        if "address" in cleaned_data:
+            instance.address = cleaned_data["address"]
 
         if cleaned_data["image"]:
             instance.main_image = models.ImageAsset.upload_file(

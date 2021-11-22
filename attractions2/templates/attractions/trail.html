@@ -1,0 +1,38 @@
+{% extends "attractions/base_form.html" %}
+
+{% block form_title %}
+    {% if create %}
+        <h1>Create Trail</h1>
+    {% else %}
+        <h1>Edit Trail</h1>
+    {% endif %}
+{% endblock %}
+
+{% block extra_fields %}
+    <div class="col-4">
+        {% for error in form.difficulty.error_messages %}
+            <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+        <label for="id_difficulty" class="form-label">Difficulty</label>
+        {{ form.difficulty }}
+    </div>
+
+    <div class="col-4">
+        {% for error in form.length.error_messages %}
+            <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+        <label for="id_length" class="form-label">Length</label>
+        {{ form.length }}
+    </div>
+
+    <div class="col-4">
+        {% for error in form.elv_gain.error_messages %}
+            <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+        <label for="id_elv_gain" class="form-label">Elv. Gain</label>
+        {{ form.elv_gain }}
+    </div>
+{% endblock %}
+
+{% block managed %}
+{% endblock %}

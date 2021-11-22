@@ -8,6 +8,7 @@ from PIL import Image
 import boto3
 from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 import requests
 
 
@@ -184,6 +185,7 @@ class Suitability(models.Model):
     museum = models.BooleanField()
     winery = models.BooleanField()
     zoo = models.BooleanField()
+    trail = models.BooleanField()
 
     def __str__(self):
         return self.name
@@ -212,7 +214,7 @@ class Attraction(models.Model):
     lat = models.FloatField()
     long = models.FloatField()
 
-    region = models.ForeignKey(Region, on_delete=models.CASCADE)
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, null=True)
 
     date_modified = models.DateTimeField(auto_now=True)
 
@@ -386,6 +388,55 @@ class Zoo(Attraction):
     @classmethod
     def api_multiple_key(cls) -> str:
         return "zoos"
+
+
+class Trail(Attraction):
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        return "trails"
+
+    @classmethod
+    def api_single_key(cls) -> str:
+        return "trail"
+
+    class TrailDifficulty(models.TextChoices):
+        EASY = "E", _("Easy")
+        NORMAL = "N", _("Normal")
+        HARD = "H", _("Hard")
+
+    difficulty = models.CharField(
+        max_length=1,
+        choices=TrailDifficulty.choices
+    )
+
+    # In meters
+    length = models.PositiveIntegerField()
+    elv_gain = models.PositiveIntegerField()
+
+    owner = models.ForeignKey(
+        'GoogleUser',
+        on_delete=models.CASCADE
+    )
+
+    @property
+    def to_short_json(self):
+        json_result = {
+            "id": self.id,
+            "name": self.name,
+            "lat": self.lat,
+            "long": self.long,
+            "type": self.api_single_key(),
+            "difficulty": self.difficulty,
+            "length": self.length,
+            "elv_gain": self.elv_gain
+        }
+
+        if self.main_image is None:
+            json_result["main_image"] = None
+        else:
+            json_result["main_image"] = self.main_image.thumb_600().to_json
+
+        return json_result
 
 
 class GoogleUser(models.Model):

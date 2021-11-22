@@ -5,8 +5,8 @@ from attractions2.models import Attraction, Suitability
 
 
 class SuitabilityAdmin(admin.ModelAdmin):
-    list_display = ("name", "museum", "winery")
-    list_filter = ("museum", "winery")
+    list_display = ("name", "museum", "winery", "zoo")
+    list_filter = ("museum", "winery", "zoo")
 
 
 admin.site.register(Suitability, SuitabilityAdmin)
