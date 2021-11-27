@@ -4,18 +4,11 @@ from attractions2 import models
 
 
 class BaseAttractionForm(forms.Form):
-    name = forms.CharField(widget=forms.TextInput(attrs={
-        "class": "form-control"
-    }))
+    name = forms.CharField()
 
-    description = forms.CharField(widget=forms.Textarea(attrs={
-        "class": "form-control"
-    }), required=False)
-
-
+    description = forms.CharField(required=False, widget=forms.Textarea())
 
     long = forms.FloatField(widget=forms.TextInput(attrs={
-        "class": "form-control",
         "type": "number",
         "max": "36",
         "min": "33",
@@ -23,7 +16,6 @@ class BaseAttractionForm(forms.Form):
     }), min_value=33, max_value=36)
 
     lat = forms.FloatField(widget=forms.TextInput(attrs={
-        "class": "form-control",
         "type": "number",
         "max": "34",
         "min": "26",
@@ -31,17 +23,11 @@ class BaseAttractionForm(forms.Form):
     }), min_value=26, max_value=34)
 
     image = forms.ImageField(required=False, widget=forms.FileInput(
-        attrs={
-            "class": "form-control",
-            "accept": "image/*"
-        }
+        attrs={"accept": "image/*"}
     ))
 
     additional_image = forms.ImageField(required=False, widget=forms.FileInput(
-        attrs={
-            "class": "form-control",
-            "accept": "image/*"
-        }
+        attrs={"accept": "image/*"}
     ))
 
     def clean_name(self):
@@ -98,20 +84,19 @@ class BaseAttractionForm(forms.Form):
 
 
 class ManagedAttractionForm(BaseAttractionForm):
-    address = forms.CharField(widget=forms.TextInput(attrs={
-        "class": "form-control"
-    }))
+    address = forms.CharField()
 
     website = forms.URLField(widget=forms.TextInput(attrs={
-        "class": "form-control",
         "type": "url"
     }), required=False)
 
-    region = forms.ModelChoiceField(queryset=models.Region.objects, widget=forms.Select(
-        attrs={
-            "class": "form-control"
-        }
-    ))
+    region = forms.ModelChoiceField(queryset=models.Region.objects)
+
+    telephone = forms.RegexField(
+        regex="^[0-9]{9,10}$"
+    )
+
+    city = forms.CharField()
 
 
 class BootstrapCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
@@ -125,36 +110,16 @@ class MuseumForm(ManagedAttractionForm):
         }
     ))
 
-    suitability = forms.ModelMultipleChoiceField(
-        queryset=models.Suitability.objects.filter(museum=True),
-        widget=BootstrapCheckboxSelectMultiple(),
-        required=False
-    )
-
 
 class WineryForm(ManagedAttractionForm):
-    suitability = forms.ModelMultipleChoiceField(
-        queryset=models.Suitability.objects.filter(winery=True),
-        widget=BootstrapCheckboxSelectMultiple(),
-        required=False
-    )
+    pass
 
 
 class ZooForm(ManagedAttractionForm):
-    suitability = forms.ModelMultipleChoiceField(
-        queryset=models.Suitability.objects.filter(zoo=True),
-        widget=BootstrapCheckboxSelectMultiple(),
-        required=False
-    )
+    pass
 
 
 class TrailForm(BaseAttractionForm):
-    suitability = forms.ModelMultipleChoiceField(
-        queryset=models.Suitability.objects.filter(trail=True),
-        widget=BootstrapCheckboxSelectMultiple(),
-        required=False
-    )
-
     difficulty = forms.ChoiceField(
         choices=models.Trail.TrailDifficulty.choices,
         widget=forms.Select(attrs={

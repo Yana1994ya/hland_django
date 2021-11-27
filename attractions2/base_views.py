@@ -57,7 +57,8 @@ class EditView(View, abc.ABC):
                 "long": instance.long,
                 "region": instance.region,
                 "address": instance.address,
-                "suitability": instance.suitability.all()
+                "telephone": instance.telephone,
+                "city": instance.city
             }
 
     @abc.abstractmethod
@@ -67,17 +68,16 @@ class EditView(View, abc.ABC):
     def update_instance(self, instance: models.Attraction, cleaned_data: dict) -> NoReturn:
         instance.name = cleaned_data["name"]
         instance.description = cleaned_data["description"]
-        if "website" in cleaned_data:
-            instance.website = cleaned_data["website"]
+        instance.website = cleaned_data.get("website")
 
         instance.lat = cleaned_data["lat"]
         instance.long = cleaned_data["long"]
 
-        if "region" in cleaned_data:
-            instance.region = cleaned_data["region"]
+        instance.telephone = cleaned_data.get("telephone")
+        instance.city = cleaned_data.get("city")
 
-        if "address" in cleaned_data:
-            instance.address = cleaned_data["address"]
+        instance.region = cleaned_data.get("region")
+        instance.address = cleaned_data.get("address")
 
         if cleaned_data["image"]:
             instance.main_image = models.ImageAsset.upload_file(
@@ -86,7 +86,7 @@ class EditView(View, abc.ABC):
             )
 
     def handle_m2m(self, instance: models.Attraction, cleaned_data: dict) -> NoReturn:
-        instance.suitability.set(cleaned_data["suitability"])
+        pass
 
     def get(self, request, **kwargs):
         pk = self.get_id(kwargs)

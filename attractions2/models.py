@@ -218,7 +218,8 @@ class Attraction(models.Model):
 
     date_modified = models.DateTimeField(auto_now=True)
 
-    suitability = models.ManyToManyField(Suitability)
+    telephone = models.CharField(max_length=10, blank=True, null=True)
+    city = models.CharField(max_length=50, blank=True, null=True)
 
     @classmethod
     def short_related(cls) -> List[str]:
@@ -269,7 +270,9 @@ class Attraction(models.Model):
             "long": self.long,
             "region": self.region.to_short_json,
             "address": self.address,
-            "type": self.api_single_key()
+            "type": self.api_single_key(),
+            "city": self.city,
+            "telephone": self.telephone
         }
 
         if self.main_image is None:

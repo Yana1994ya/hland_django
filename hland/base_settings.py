@@ -36,7 +36,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'market_review',
     'tenbis',
-    'attractions2'
+    'attractions2',
+    "django_bootstrap5"
 ]
 
 MIDDLEWARE = [

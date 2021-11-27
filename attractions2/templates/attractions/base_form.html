@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load django_bootstrap5 %}
 
 {% block body %}
     {% block form_title %}
@@ -10,73 +11,50 @@
         {% csrf_token %}
         <div class="row g-3 pb-2">
             <div class="col-12">
-                {% for error in form.name.error_messages %}
-                    <div class="invalid-feedback">{{ error }}</div>
-                {% endfor %}
-                <label for="id_name" class="form-label">Name</label>
-                {{ form.name }}
+                {% bootstrap_field form.name %}
             </div>
 
             <div class="col-12">
-                {% for error in form.description.error_messages %}
-                    <div class="invalid-feedback">{{ error }}</div>
-                {% endfor %}
-                <label for="id_description" class="form-label">Description</label>
-                {{ form.description }}
+                {% bootstrap_field form.description %}
             </div>
 
             {% if form.website %}
                 <div class="col-12">
-                    {% for error in form.website.error_messages %}
-                        <div class="invalid-feedback">{{ error }}</div>
-                    {% endfor %}
-                    <label for="id_website" class="form-label">Website</label>
-                    {{ form.website }}
+                    {% bootstrap_field form.website %}
                 </div>
             {% endif %}
 
             {% if form.address %}
                 <div class="col-12">
-                    {% for error in form.address.error_messages %}
-                        <div class="invalid-feedback">{{ error }}</div>
-                    {% endfor %}
-                    <label for="id_website" class="form-label">Address</label>
-                    {{ form.address }}
+                    {% bootstrap_field form.address %}
                 </div>
             {% endif %}
 
             <div class="col-6">
-                {% for error in form.lat.error_messages %}
-                    <div class="invalid-feedback">{{ error }}</div>
-                {% endfor %}
-                <label for="id_lat" class="form-label">Latitude</label>
-                {{ form.lat }}
+                {% bootstrap_field form.lat %}
             </div>
 
             <div class="col-6">
-                {% for error in form.long.error_messages %}
-                    <div class="invalid-feedback">{{ error }}</div>
-                {% endfor %}
-                <label for="id_long" class="form-label">Longitude</label>
-                {{ form.long }}
+                {% bootstrap_field form.long %}
             </div>
 
             {% if form.region %}
                 <div class="col-4">
-                    {% for error in form.region.error_messages %}
-                        <div class="invalid-feedback">{{ error }}</div>
-                    {% endfor %}
-                    <label for="id_region" class="form-label">Region</label>
-                    {{ form.region }}
+                    {% bootstrap_field form.region %}
                 </div>
             {% endif %}
 
-            <div class="col-4">
-                {% for error in form.suitability.error_messages %}
-                    <div class="invalid-feedback">{{ error }}</div>
-                {% endfor %}
-                {{ form.suitability }}
-            </div>
+            {% if form.region %}
+                <div class="col-4">
+                    {% bootstrap_field form.city %}
+                </div>
+            {% endif %}
+
+            {% if form.telephone %}
+                <div class="col-4">
+                    {% bootstrap_field form.telephone %}
+                </div>
+            {% endif %}
 
             {% block extra_fields %}
             {% endblock %}
@@ -138,22 +116,10 @@
             </div>
             <div class="row pb-3 pt-3">
                 <div class="col-6">
-                    {{ form.image }}
+                    {% bootstrap_field form.image %}
                 </div>
                 <div class="col-6">
-                    {{ form.additional_image }}
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-6">
-                    {% for error in form.image.error_messages %}
-                        <div class="invalid-feedback">{{ error }}</div>
-                    {% endfor %}
-                </div>
-                <div class="col-6">
-                    {% for error in form.additional_image.error_messages %}
-                        <div class="invalid-feedback">{{ error }}</div>
-                    {% endfor %}
+                    {% bootstrap_field form.additional_image %}
                 </div>
             </div>
             <div class="row">
