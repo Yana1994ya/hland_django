@@ -324,6 +324,7 @@ def map_attractions(request):
             content_type__isnull=False
     ):
         attractions.append({
+            "id": attraction.id,
             "name": attraction.name,
             "long": attraction.long,
             "lat": attraction.lat,

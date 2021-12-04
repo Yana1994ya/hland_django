@@ -104,11 +104,7 @@ class BootstrapCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
 
 
 class MuseumForm(ManagedAttractionForm):
-    domain = forms.ModelChoiceField(queryset=models.MuseumDomain.objects, widget=forms.Select(
-        attrs={
-            "class": "form-control"
-        }
-    ))
+    domain = forms.ModelChoiceField(queryset=models.MuseumDomain.objects)
 
 
 class WineryForm(ManagedAttractionForm):
@@ -142,3 +138,7 @@ class TrailForm(BaseAttractionForm):
         "min": "100",
         "step": "1"
     }))
+
+
+class OffRoadForm(ManagedAttractionForm):
+    trip_type = forms.ModelChoiceField(queryset=models.OffRoadTripType.objects)

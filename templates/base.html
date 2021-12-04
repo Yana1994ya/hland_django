@@ -39,11 +39,11 @@
         <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav me-auto mb-2 mb-md-0">
                 <li class="nav-item">
-                    {% if category == "market_review" %}
+                    {% if category == "attractions" %}
                         <a class="nav-link active" aria-current="page"
-                           href="{% url "market_review_home" %}">Market review</a>
+                           href="{% url "attractions_homepage" %}">Attractions</a>
                     {% else %}
-                        <a class="nav-link" href="{% url "market_review_home" %}">Market review</a>
+                        <a class="nav-link" href="{% url "attractions_homepage" %}">Attractions</a>
                     {% endif %}
                 </li>
             </ul>

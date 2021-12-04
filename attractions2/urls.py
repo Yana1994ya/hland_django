@@ -34,7 +34,7 @@ def get_api_urls_for(model, edit_view):
 
 
 urlpatterns = [
-                  path("", views.homepage, name="homepage"),
+                  path("", views.homepage, name="attractions_homepage"),
                   path("api/regions", api_views.get_regions),
                   path("api/museum_domains", api_views.get_museum_domains),
                   path("api/visit", api_views.visit),
@@ -48,4 +48,5 @@ urlpatterns = [
               get_api_urls_for(models.Museum, views.EditMuseum.as_view()) + \
               get_api_urls_for(models.Winery, views.EditWinery.as_view()) + \
               get_api_urls_for(models.Zoo, views.EditZoo.as_view()) + \
-              get_api_urls_for(models.Trail, views.EditTrail.as_view())
+              get_api_urls_for(models.Trail, views.EditTrail.as_view()) + \
+              get_api_urls_for(models.OffRoad, views.EditOffRoad.as_view())

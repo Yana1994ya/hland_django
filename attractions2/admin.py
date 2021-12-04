@@ -1,7 +1,7 @@
 # Register your models here.
 from django.contrib import admin
 
-from attractions2.models import Attraction
+from attractions2.models import Attraction, OffRoadTripType
 
 
 class AttractionAdmin(admin.ModelAdmin):
@@ -9,3 +9,10 @@ class AttractionAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Attraction, AttractionAdmin)
+
+
+class OffRoadTripTypeAdmin(admin.ModelAdmin):
+    pass
+
+
+admin.site.register(OffRoadTripType, OffRoadTripTypeAdmin)

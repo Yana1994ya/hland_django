@@ -394,6 +394,58 @@ class Zoo(Attraction):
         return "zoos"
 
 
+class OffRoadTripType(models.Model):
+    name = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def to_json(self):
+        return {
+            "id": self.id,
+            "name": self.name
+        }
+
+
+class OffRoad(Attraction):
+    trip_type = models.ForeignKey(OffRoadTripType, on_delete=models.CASCADE)
+
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        return "offroad"
+
+    @classmethod
+    def api_single_key(cls) -> str:
+        return "offroad"
+
+    @classmethod
+    def short_related(cls) -> List[str]:
+        return super().short_related() + ["trip_type"]
+
+    @property
+    def to_short_json(self):
+        result = super().to_short_json
+
+        result.update({
+            "trip_type": self.trip_type.to_json
+        })
+
+        return result
+
+    @classmethod
+    def explore_filter(cls, qset, request):
+        qset = super().explore_filter(qset, request)
+
+        if "trip_type_id" in request.GET:
+            qset = qset.filter(trip_type_id__in=list(map(
+                int,
+                request.GET.getlist("trip_type_id"),
+            )))
+
+        return qset
+
+
 class Trail(Attraction):
     @classmethod
     def api_multiple_key(cls) -> str:

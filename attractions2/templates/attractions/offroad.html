@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block body %}
+    <div class="container">
+        <h1>Off Road Trips</h1>
+        <div class="row pb-3">
+            {% for offroad in page.object_list %}
+                <div class="row">
+                    <a href="{% url "edit_offroad" offroad_id=offroad.id %}">{{ offroad.name }}</a>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="row pb-1">
+            <a href="{% url "add_offroad" %}">Create Off Road Trip</a>
+        </div>
+
+        {{ pager.render }}
+    </div>
+{% endblock %}

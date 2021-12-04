@@ -68,6 +68,30 @@ class EditZoo(EditView):
         return f"Zoo {instance.name} was saved successfully"
 
 
+class EditOffRoad(EditView):
+    form_class = forms.OffRoadForm
+    model = models.OffRoad
+
+    def success_message(self, instance: models.OffRoad) -> str:
+        return f"OffRoad trip {instance.name} was saved successfully"
+
+    def get_initial(self, instance: models.OffRoad) -> dict:
+        initial = super().get_initial(instance)
+
+        if instance.id is not None:
+            initial["trip_type"] = instance.trip_type
+
+        return initial
+
+    def update_instance(self, instance: models.OffRoad, cleaned_data: dict):
+        super().update_instance(instance, cleaned_data)
+        instance.trip_type = cleaned_data["trip_type"]
+
+    @classmethod
+    def template_name(cls) -> str:
+        return "attractions/edit_offroad.html"
+
+
 class EditTrail(EditView):
     form_class = forms.TrailForm
     model = models.Trail
