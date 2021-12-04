@@ -307,3 +307,30 @@ def favorites_list(request: UserRequest, model):
         "status": "ok",
         model.api_multiple_key(): result
     })
+
+
+def map_attractions(request):
+    lon_min = float(request.GET["lon_min"])
+    lon_max = float(request.GET["lon_max"])
+    lat_min = float(request.GET["lat_min"])
+    lat_max = float(request.GET["lat_max"])
+
+    attractions = []
+    for attraction in models.Attraction.objects.filter(
+            long__gte=lon_min,
+            long__lte=lon_max,
+            lat__gte=lat_min,
+            lat__lte=lat_max,
+            content_type__isnull=False
+    ):
+        attractions.append({
+            "name": attraction.name,
+            "long": attraction.long,
+            "lat": attraction.lat,
+            "type": attraction.content_type.model_class().api_single_key()
+        })
+
+    return JsonResponse({
+        "status": "ok",
+        "attractions": attractions
+    })

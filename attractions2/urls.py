@@ -43,6 +43,7 @@ urlpatterns = [
                   path("api/favorite", api_views.favorite),
                   path("api/favorites", api_views.favorites),
                   path("api/login", api_views.login),
+                  path("api/map", api_views.map_attractions),
               ] + \
               get_api_urls_for(models.Museum, views.EditMuseum.as_view()) + \
               get_api_urls_for(models.Winery, views.EditWinery.as_view()) + \

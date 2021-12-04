@@ -7,6 +7,7 @@ import uuid
 from PIL import Image
 import boto3
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 import requests
@@ -179,18 +180,6 @@ class Region(models.Model):
         return self.name
 
 
-class Suitability(models.Model):
-    name = models.CharField(max_length=250)
-
-    museum = models.BooleanField()
-    winery = models.BooleanField()
-    zoo = models.BooleanField()
-    trail = models.BooleanField()
-
-    def __str__(self):
-        return self.name
-
-
 class Attraction(models.Model):
     name = models.CharField(max_length=250)
 
@@ -220,6 +209,18 @@ class Attraction(models.Model):
 
     telephone = models.CharField(max_length=10, blank=True, null=True)
     city = models.CharField(max_length=50, blank=True, null=True)
+
+    content_type = models.ForeignKey(
+        ContentType,
+        editable=False,
+        null=True,
+        on_delete=models.SET_NULL
+    )
+
+    def save(self, *args, **kwargs):
+        if self.content_type is None:
+            self.content_type = ContentType.objects.get_for_model(self.__class__)
+        super(Attraction, self).save(*args, **kwargs)
 
     @classmethod
     def short_related(cls) -> List[str]:
