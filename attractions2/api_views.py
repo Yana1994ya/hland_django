@@ -225,6 +225,7 @@ def history(request: UserRequest):
             "museums": models.Museum.objects.filter(history__user_id=request.user_id).count(),
             "wineries": models.Winery.objects.filter(history__user_id=request.user_id).count(),
             "zoos": models.Zoo.objects.filter(history__user_id=request.user_id).count(),
+            "off_road": models.OffRoad.objects.filter(history__user_id=request.user_id).count(),
         }
     })
 
@@ -278,7 +279,8 @@ def favorites(request: UserRequest):
         "favorites": {
             "museums": models.Museum.objects.filter(favorite__user_id=request.user_id).count(),
             "wineries": models.Winery.objects.filter(favorite__user_id=request.user_id).count(),
-            "zoos": models.Zoo.objects.filter(favorite__user_id=request.user_id).count()
+            "zoos": models.Zoo.objects.filter(favorite__user_id=request.user_id).count(),
+            "off_road": models.OffRoad.objects.filter(favorite__user_id=request.user_id).count()
         }
     })
 
@@ -334,4 +336,21 @@ def map_attractions(request):
     return JsonResponse({
         "status": "ok",
         "attractions": attractions
+    })
+
+
+def _get_off_road_trip_types_last_modified(request):
+    return models.OffRoadTripType.objects.latest("date_modified").date_modified
+
+
+# cache regions for 1 day
+@cache_page(60 * 60 * 24)
+@condition(last_modified_func=_get_off_road_trip_types_last_modified)
+def get_off_road_trip_types(request):
+    return JsonResponse({
+        "status": "ok",
+        "trip_types": list(map(
+            lambda x: x.to_json,
+            models.OffRoadTripType.objects.order_by("name")
+        ))
     })

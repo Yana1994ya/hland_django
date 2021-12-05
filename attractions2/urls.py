@@ -37,6 +37,7 @@ urlpatterns = [
                   path("", views.homepage, name="attractions_homepage"),
                   path("api/regions", api_views.get_regions),
                   path("api/museum_domains", api_views.get_museum_domains),
+                  path("api/off_road_trip_types", api_views.get_off_road_trip_types),
                   path("api/visit", api_views.visit),
                   path("api/history", api_views.history),
                   path("api/history/delete", api_views.delete_history),
