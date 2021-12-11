@@ -254,6 +254,7 @@ class Attraction(models.Model):
 
     @classmethod
     def explore_filter(cls, qset, request):
+        # https://hollyland.iywebs.cloudns.ph/attractions/api/museums?region_id=4
         if "region_id" in request.GET:
             qset = qset.filter(region_id__in=list(map(
                 int,
@@ -329,16 +330,6 @@ class Museum(Attraction):
     domain = models.ForeignKey(MuseumDomain, on_delete=models.CASCADE)
 
     @property
-    def to_json(self):
-        result = super().to_json
-
-        result.update({
-            "domain": self.domain.to_json
-        })
-
-        return result
-
-    @property
     def to_short_json(self):
         result = super().to_short_json
 
@@ -362,6 +353,7 @@ class Museum(Attraction):
 
     @classmethod
     def explore_filter(cls, qset, request):
+        # https://hollyland.iywebs.cloudns.ph/attractions/api/museums?region_id=4&domain_id=1
         qset = super().explore_filter(qset, request)
 
         if "domain_id" in request.GET:
@@ -498,6 +490,7 @@ class Trail(Attraction):
 
 class GoogleUser(models.Model):
     id = models.UUIDField(primary_key=True)
+    # Identifier in google
     sub = models.CharField(max_length=250, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     email_verified = models.BooleanField(blank=True, null=True)
@@ -506,13 +499,16 @@ class GoogleUser(models.Model):
     family_name = models.CharField(max_length=250, blank=True, null=True)
     picture = models.CharField(max_length=250, blank=True, null=True)
     date_modified = models.DateTimeField(auto_now=True)
+    # Keep user anonymous by *not* updating name/given_name/email when logging in.
     anonymized = models.BooleanField()
 
 
 class History(models.Model):
     user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
     attraction = models.ForeignKey(Attraction, on_delete=models.CASCADE)
+    # When the user first visited an attraction
     created = models.DateTimeField()
+    # When the user last visited an attraction
     last_visited = models.DateTimeField()
 
     class Meta:

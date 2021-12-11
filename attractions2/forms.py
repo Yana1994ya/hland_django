@@ -99,10 +99,6 @@ class ManagedAttractionForm(BaseAttractionForm):
     city = forms.CharField()
 
 
-class BootstrapCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
-    template_name = 'forms/widgets/bootstrap_checkbox_select.html'
-
-
 class MuseumForm(ManagedAttractionForm):
     domain = forms.ModelChoiceField(queryset=models.MuseumDomain.objects)
 

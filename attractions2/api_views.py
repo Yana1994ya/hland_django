@@ -95,7 +95,7 @@ def get_single(request, model, attraction_id: int):
             "status": "ok",
             model.api_single_key(): model.objects.get(id=attraction_id).to_json
         })
-    except models.Museum.DoesNotExist:
+    except model.DoesNotExist:
         resp = JsonResponse({
             "status": "error",
             "code": "NotFound",
@@ -128,7 +128,7 @@ def login(request):
     # hashed sub, rather than the original sub
     user_id = uuid.uuid5(settings.USER_ID_NAMESPACE, data["sub"])
 
-    user, created = models.GoogleUser.objects.get_or_create(id=user_id, defaults={
+    user, _created = models.GoogleUser.objects.get_or_create(id=user_id, defaults={
         # All users start as non anonymized
         "anonymized": False
     })
@@ -324,7 +324,7 @@ def map_attractions(request):
             lat__gte=lat_min,
             lat__lte=lat_max,
             content_type__isnull=False
-    ):
+    ).select_related("content_type"):
         attractions.append({
             "id": attraction.id,
             "name": attraction.name,

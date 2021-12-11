@@ -11,7 +11,7 @@ from attractions2.pager import Pager
 
 @staff_member_required
 def display(request, model, page_number: int):
-    paginator = Paginator(model.objects.all().order_by("name"), 30)
+    paginator = Paginator(model.objects.all().only("name").order_by("name"), 30)
     page = paginator.page(page_number)
 
     return render(
