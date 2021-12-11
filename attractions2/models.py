@@ -143,7 +143,12 @@ class ImageAsset(models.Model):
 
     @property
     def url(self):
-        return f"https://{self.bucket}.s3.amazonaws.com/{self.key}"
+        cdn = settings.ASSETS.get("cdn")
+
+        if cdn is not None:
+            return f"https://{cdn}/{self.key}"
+        else:
+            return f"https://{self.bucket}.s3.amazonaws.com/{self.key}"
 
 
 class Region(models.Model):
