@@ -83,7 +83,7 @@ class ImageAsset(models.Model):
                 s3.upload_fileobj(fh, bucket, key, ExtraArgs={
                     "ContentType": "image/png",
                     "ACL": "public-read",
-                    "CacheControl": "public, max-age=86400"
+                    "CacheControl": "public, max-age=2592000"
                 })
 
                 thumb = ImageAsset(
@@ -126,7 +126,7 @@ class ImageAsset(models.Model):
         s3.upload_fileobj(image.file, bucket, key, ExtraArgs={
             "ContentType": image.content_type,
             "ACL": "public-read",
-            "CacheControl": "public, max-age=86400"
+            "CacheControl": "public, max-age=2592000"
         })
 
         asset = ImageAsset(
