@@ -7,7 +7,7 @@ import uuid
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 import django.http.request
-from django.views.decorators.cache import cache_page
+from django.views.decorators.cache import cache_control, cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import condition
 import jwt
@@ -66,7 +66,8 @@ def _get_explore_last_modified(request, model):
         return None
 
 
-# TODO: don't cache for now, rapidly changing
+# cache explore for 2 hours
+@cache_control(public=True, max_age=60 * 60 * 2)
 @condition(last_modified_func=_get_explore_last_modified)
 def get_explore(request, model):
     items = []
@@ -88,6 +89,8 @@ def _get_single_last_modified(request, model, attraction_id: int):
         return None
 
 
+# cache single for 2 hours
+@cache_control(public=True, max_age=60 * 60 * 2)
 @condition(last_modified_func=_get_single_last_modified)
 def get_single(request, model, attraction_id: int):
     try:
@@ -311,6 +314,7 @@ def favorites_list(request: UserRequest, model):
     })
 
 
+@never_cache
 def map_attractions(request):
     lon_min = float(request.GET["lon_min"])
     lon_max = float(request.GET["lon_max"])
