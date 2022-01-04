@@ -45,9 +45,9 @@ urlpatterns = [
                   path("api/favorites", api_views.favorites),
                   path("api/login", api_views.login),
                   path("api/map", api_views.map_attractions),
+                  path("api/trail/<uuid:trail_id>", api_views.get_trail),
               ] + \
               get_api_urls_for(models.Museum, views.EditMuseum.as_view()) + \
               get_api_urls_for(models.Winery, views.EditWinery.as_view()) + \
               get_api_urls_for(models.Zoo, views.EditZoo.as_view()) + \
-              get_api_urls_for(models.Trail, views.EditTrail.as_view()) + \
               get_api_urls_for(models.OffRoad, views.EditOffRoad.as_view())

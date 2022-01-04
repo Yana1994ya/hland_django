@@ -3,10 +3,12 @@ from datetime import datetime
 import json
 import time
 import uuid
+from typing import Optional
 
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 import django.http.request
+from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import cache_control, cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import condition
@@ -357,4 +359,39 @@ def get_off_road_trip_types(request):
             lambda x: x.to_json,
             models.OffRoadTripType.objects.order_by("name")
         ))
+    })
+
+
+def _get_trail_modified_date(_request, trail_id: str) -> Optional[datetime]:
+    try:
+        return models.Trail.objects.get(id=trail_id).date_modified
+    except models.Trail.DoesNotExist:
+        return None
+
+
+def _trail_points_url(trail_id: str) -> str:
+    cdn = settings.ASSETS.get("cdn")
+    prefix = settings.ASSETS["prefix"]
+    bucket = settings.ASSETS["bucket"]
+
+    if cdn is not None:
+        return f"https://{cdn}/{prefix}trails/{trail_id}.csv.gz"
+    else:
+        return f"https://{bucket}.s3.amazonaws.com/{prefix}trails/{trail_id}.csv.gz"
+
+
+@cache_page(60*60*24)
+@condition()
+def get_trail(request, trail_id: str):
+    trail = get_object_or_404(models.Trail, id=trail_id)
+
+    data = trail.to_short_json
+    data.update({
+        "points": _trail_points_url(trail.id),
+        "owner": trail.owner.to_json
+    })
+
+    return JsonResponse({
+        "status": "ok",
+        "trail": data
     })

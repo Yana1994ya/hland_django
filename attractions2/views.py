@@ -90,34 +90,3 @@ class EditOffRoad(EditView):
     @classmethod
     def template_name(cls) -> str:
         return "attractions/edit_offroad.html"
-
-
-class EditTrail(EditView):
-    form_class = forms.TrailForm
-    model = models.Trail
-
-    def success_message(self, instance: models.Trail) -> str:
-        return f"Trail {instance.name} was saved successfully"
-
-    def get_initial(self, instance: models.Trail) -> dict:
-        initial = super().get_initial(instance)
-
-        if instance:
-            initial.update({
-                "difficulty": instance.difficulty,
-                "length": instance.length,
-                "elv_gain": instance.elv_gain
-            })
-
-        return initial
-
-    def update_instance(self, instance: models.Trail, cleaned_data: dict) -> NoReturn:
-        super().update_instance(instance, cleaned_data)
-
-        instance.difficulty = cleaned_data["difficulty"]
-        instance.length = cleaned_data["length"]
-        instance.elv_gain = cleaned_data["elv_gain"]
-        # If trail has no attribution, attribute it to yana.
-        if instance.owner_id is None:
-            instance.owner = models.GoogleUser.objects.get(
-                pk="ac2d93aa-c627-5ffd-805e-d01191f28b44")

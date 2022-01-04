@@ -444,7 +444,15 @@ class OffRoad(Attraction):
         return qset
 
 
-class Trail(Attraction):
+class TrailDifficulty(models.TextChoices):
+    EASY = "E", _("Easy")
+    NORMAL = "N", _("Normal")
+    HARD = "H", _("Hard")
+
+
+class Trail(models.Model):
+    id = models.UUIDField(primary_key=True)
+
     @classmethod
     def api_multiple_key(cls) -> str:
         return "trails"
@@ -452,11 +460,6 @@ class Trail(Attraction):
     @classmethod
     def api_single_key(cls) -> str:
         return "trail"
-
-    class TrailDifficulty(models.TextChoices):
-        EASY = "E", _("Easy")
-        NORMAL = "N", _("Normal")
-        HARD = "H", _("Hard")
 
     difficulty = models.CharField(
         max_length=1,
@@ -467,10 +470,28 @@ class Trail(Attraction):
     length = models.PositiveIntegerField()
     elv_gain = models.PositiveIntegerField()
 
+    name = models.CharField(max_length=250)
+    lat = models.FloatField()
+    long = models.FloatField()
+
     owner = models.ForeignKey(
         'GoogleUser',
         on_delete=models.CASCADE
     )
+
+    main_image = models.ForeignKey(
+        ImageAsset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    additional_images = models.ManyToManyField(
+        ImageAsset,
+        related_name="trail_additional_image"
+    )
+
+    date_modified = models.DateTimeField(auto_now=True)
 
     @property
     def to_short_json(self):
@@ -506,6 +527,19 @@ class GoogleUser(models.Model):
     date_modified = models.DateTimeField(auto_now=True)
     # Keep user anonymous by *not* updating name/given_name/email when logging in.
     anonymized = models.BooleanField()
+
+    @property
+    def to_json(self):
+        data = {
+            "name": self.name
+        }
+
+        if self.picture:
+            data["picture"] = self.picture
+
+        return data
+
+
 
 
 class History(models.Model):

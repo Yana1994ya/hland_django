@@ -111,30 +111,5 @@ class ZooForm(ManagedAttractionForm):
     pass
 
 
-class TrailForm(BaseAttractionForm):
-    difficulty = forms.ChoiceField(
-        choices=models.Trail.TrailDifficulty.choices,
-        widget=forms.Select(attrs={
-            "class": "form-control"
-        })
-    )
-
-    length = forms.IntegerField(widget=forms.TextInput(attrs={
-        "class": "form-control",
-        "type": "number",
-        "max": "100000",
-        "min": "100",
-        "step": "1"
-    }))
-
-    elv_gain = forms.IntegerField(widget=forms.TextInput(attrs={
-        "class": "form-control",
-        "type": "number",
-        "max": "100000",
-        "min": "100",
-        "step": "1"
-    }))
-
-
 class OffRoadForm(ManagedAttractionForm):
     trip_type = forms.ModelChoiceField(queryset=models.OffRoadTripType.objects)
