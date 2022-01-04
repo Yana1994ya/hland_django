@@ -381,7 +381,7 @@ def _trail_points_url(trail_id: str) -> str:
 
 
 @cache_page(60*60*24)
-@condition()
+@condition(last_modified_func=_get_trail_modified_date)
 def get_trail(request, trail_id: str):
     trail = get_object_or_404(models.Trail, id=trail_id)
 
@@ -394,4 +394,31 @@ def get_trail(request, trail_id: str):
     return JsonResponse({
         "status": "ok",
         "trail": data
+    })
+
+
+def _trails_query_set(request) -> Optional[datetime]:
+    return models.Trail.objects.all()
+
+
+def _trails_modified(request):
+    try:
+        return _trails_query_set(request).latest("date_modified").date_modified
+    except models.Trail.DoesNotExist:
+        return None
+
+
+@cache_page(60*60)
+@condition(last_modified_func=_trails_modified)
+def get_trails(request):
+    trails = _trails_query_set(request)
+
+    data = []
+
+    for trail in trails:
+        data.append(trail.to_short_json)
+
+    return JsonResponse({
+        "status": "ok",
+        "trails": data
     })
