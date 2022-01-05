@@ -5,6 +5,7 @@ import time
 import uuid
 from typing import Optional
 
+import boto3
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 import django.http.request
@@ -156,7 +157,7 @@ def login(request):
         "token": jwt.encode(
             {
                 "id": str(user.id),
-                "exp": int(time.time()) + 60*60*24*7,
+                "exp": int(time.time()) + 60 * 60 * 24 * 7,
                 "aud": settings.AUDIENCE
             },
             settings.SECRET_KEY,
@@ -380,15 +381,20 @@ def _trail_points_url(trail_id: str) -> str:
         return f"https://{bucket}.s3.amazonaws.com/{prefix}trails/{trail_id}.csv.gz"
 
 
-@cache_page(60*60*24)
+@cache_page(60 * 60 * 24)
 @condition(last_modified_func=_get_trail_modified_date)
 def get_trail(request, trail_id: str):
     trail = get_object_or_404(models.Trail, id=trail_id)
 
+    additional_images = []
+    for image in trail.additional_images.all():
+        additional_images.append(image.landscape_thumb(900).to_json)
+
     data = trail.to_short_json
     data.update({
         "points": _trail_points_url(trail.id),
-        "owner": trail.owner.to_json
+        "owner": trail.owner.to_json,
+        "additional_images": additional_images
     })
 
     return JsonResponse({
@@ -408,7 +414,7 @@ def _trails_modified(request):
         return None
 
 
-@cache_page(60*60)
+@cache_page(60 * 60)
 @condition(last_modified_func=_trails_modified)
 def get_trails(request):
     trails = _trails_query_set(request)
@@ -421,4 +427,60 @@ def get_trails(request):
     return JsonResponse({
         "status": "ok",
         "trails": data
+    })
+
+
+@with_user_id
+def upload_start(request: UserRequest):
+    if "size" not in request.data:
+        return JsonResponse({
+            "status": "error",
+            "code": "SizeMissing",
+            "message": "The size field is missing from the request body"
+        })
+
+    size = int(request.data["size"])
+    if size == 0 or size > 1024 * 1024:
+        return JsonResponse({
+            "status": "error",
+            "code": "ExcessiveSize",
+            "message": "Size is 0 or larger than 1 mb"
+        })
+
+    upload = models.TrailUpload(
+        id=uuid.uuid4(),
+        size=size,
+        owner_id=request.user_id
+    )
+
+    upload.save()
+
+    s3 = boto3.client("s3", **settings.ASSETS["config"])
+
+    key = settings.ASSETS["prefix"] + "trails/" + str(upload.id) + ".csv.gz"
+    bucket = settings.ASSETS["bucket"]
+
+    url = s3.generate_presigned_post(
+        bucket,
+        key,
+        Fields={
+            "acl": "public-read",
+            # "Content-Encoding": "gzip",
+            # "Content-Type": "text/csv"
+        },
+        ExpiresIn=3600,
+        Conditions=[
+            {"acl": "public-read"},
+            # {"Content-Encoding": "gzip"},
+            # {"Content-Type": "text/csv"},
+            ["content-length-range", size, size]
+        ]
+    )
+
+    return JsonResponse({
+        "status": "ok",
+        "upload": {
+            "id": str(upload.id),
+            "post": url
+        }
     })
