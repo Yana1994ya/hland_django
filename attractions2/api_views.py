@@ -1,8 +1,13 @@
+import csv
 import dataclasses
+import gzip
+import http.client
 from datetime import datetime
 import json
 import time
 import uuid
+from math import radians, sin, cos, sqrt, atan2
+from statistics import mean
 from typing import Optional
 
 import boto3
@@ -430,57 +435,109 @@ def get_trails(request):
     })
 
 
-@with_user_id
-def upload_start(request: UserRequest):
-    if "size" not in request.data:
-        return JsonResponse({
-            "status": "error",
-            "code": "SizeMissing",
-            "message": "The size field is missing from the request body"
-        })
+def get_distance(point1, point2):
+    R = 6370
+    lat1 = radians(point1[0])
+    lon1 = radians(point1[1])
+    lat2 = radians(point2[0])
+    lon2 = radians(point2[1])
 
-    size = int(request.data["size"])
-    if size == 0 or size > 1024 * 1024:
-        return JsonResponse({
-            "status": "error",
-            "code": "ExcessiveSize",
-            "message": "Size is 0 or larger than 1 mb"
-        })
+    dlon = lon2 - lon1
+    dlat = lat2- lat1
 
-    upload = models.TrailUpload(
-        id=uuid.uuid4(),
-        size=size,
-        owner_id=request.user_id
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1-a))
+    distance = R * c
+    return distance
+
+
+@csrf_exempt
+def upload_start(request):
+    if request.method != "POST":
+        return HttpResponse("Only post requests allowed", status=http.client.METHOD_NOT_ALLOWED)
+
+    user = jwt.decode(
+        request.POST["token"],
+        settings.SECRET_KEY,
+        audience=settings.AUDIENCE,
+        algorithms='HS256'
     )
 
-    upload.save()
+    user_id = uuid.UUID(user["id"])
+
+    with gzip.open(request.FILES["file"], "rt") as gh:
+        reader = csv.reader(gh)
+        header = {}
+        index = 0
+
+        data = []
+
+        for col in next(reader):
+            header[col] = index
+            index += 1
+
+        for row in reader:
+            data.append({
+                "Latitude": float(row[header["Latitude"]]),
+                "Longitude": float(row[header["Longitude"]]),
+                "Altitude": float(row[header["Altitude"]])
+            })
+
+    if len(data) == 0:
+        return HttpResponse("File has no records", status=http.client.BAD_REQUEST)
+
+    elv_gain = 0
+    last_elv = data[0]["Altitude"]
+
+    for point in data:
+        if point["Altitude"] > last_elv:
+            elv_gain += point["Altitude"] - last_elv
+        last_elv = point["Altitude"]
+
+    lat = mean(map(lambda x: x["Latitude"], data))
+    long = mean(map(lambda x: x["Longitude"], data))
+
+    distance = 0.0
+
+    last_point = data[0]
+    for point in data[1:]:
+        distance += get_distance(
+            (last_point["Latitude"], last_point["Longitude"]),
+            (point["Latitude"], point["Longitude"])
+        )
+        last_point = point
+
+    trail_id = uuid.uuid4()
 
     s3 = boto3.client("s3", **settings.ASSETS["config"])
-
-    key = settings.ASSETS["prefix"] + "trails/" + str(upload.id) + ".csv.gz"
+    key = settings.ASSETS["prefix"] + "trails/" + str(trail_id) + ".csv.gz"
     bucket = settings.ASSETS["bucket"]
 
-    url = s3.generate_presigned_post(
-        bucket,
-        key,
-        Fields={
-            "acl": "public-read",
-            # "Content-Encoding": "gzip",
-            # "Content-Type": "text/csv"
-        },
-        ExpiresIn=3600,
-        Conditions=[
-            {"acl": "public-read"},
-            # {"Content-Encoding": "gzip"},
-            # {"Content-Type": "text/csv"},
-            ["content-length-range", size, size]
-        ]
+    request.FILES["file"].seek(0)
+    s3.upload_fileobj(request.FILES["file"], bucket, key, ExtraArgs={
+        "ContentType": "text/csv",
+        "ContentEncoding": "gzip",
+        "ACL": "public-read",
+        "CacheControl": "public, max-age=2592000"
+    })
+
+    trail = models.Trail(
+        id=trail_id,
+        name="upload",
+        difficulty="M",
+        length=int(distance),
+        elv_gain=int(elv_gain),
+        lat=lat,
+        long=long,
+        owner_id=str(user_id)
     )
+
+    trail.save()
 
     return JsonResponse({
         "status": "ok",
-        "upload": {
-            "id": str(upload.id),
-            "post": url
+        "trail": {
+            "id": str(trail_id)
         }
     })
+

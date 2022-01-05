@@ -514,17 +514,6 @@ class Trail(models.Model):
         return json_result
 
 
-class TrailUpload(models.Model):
-    id = models.UUIDField(primary_key=True)
-    size = models.PositiveIntegerField()
-    owner = models.ForeignKey(
-        'GoogleUser',
-        on_delete=models.CASCADE
-    )
-
-    date_created = models.DateTimeField(auto_created=True, auto_now_add=True)
-
-
 class GoogleUser(models.Model):
     id = models.UUIDField(primary_key=True)
     # Identifier in google
