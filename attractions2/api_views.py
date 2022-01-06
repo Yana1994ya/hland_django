@@ -436,7 +436,7 @@ def get_trails(request):
 
 
 def get_distance(point1, point2):
-    R = 6370
+    R = 6370 * 1000  # In meters
     lat1 = radians(point1[0])
     lon1 = radians(point1[1])
     lat2 = radians(point2[0])
