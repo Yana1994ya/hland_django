@@ -1,27 +1,24 @@
-import csv
 import dataclasses
-import gzip
 import http.client
-from datetime import datetime
 import json
 import time
 import uuid
-from math import radians, sin, cos, sqrt, atan2
-from statistics import mean
+from datetime import datetime
 from typing import Optional
 
 import boto3
+import django.http.request
+import jwt
+import pytz
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
-import django.http.request
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import cache_control, cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import condition
-import jwt
-import pytz
 
 from attractions2 import models
+from attractions2.trail import analyze_trail, FileEmpty
 
 
 def _get_regions_last_modified(request):
@@ -435,22 +432,6 @@ def get_trails(request):
     })
 
 
-def get_distance(point1, point2):
-    R = 6370 * 1000  # In meters
-    lat1 = radians(point1[0])
-    lon1 = radians(point1[1])
-    lat2 = radians(point2[0])
-    lon2 = radians(point2[1])
-
-    dlon = lon2 - lon1
-    dlat = lat2- lat1
-
-    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
-    c = 2 * atan2(sqrt(a), sqrt(1-a))
-    distance = R * c
-    return distance
-
-
 @csrf_exempt
 def upload_start(request):
     if request.method != "POST":
@@ -465,47 +446,10 @@ def upload_start(request):
 
     user_id = uuid.UUID(user["id"])
 
-    with gzip.open(request.FILES["file"], "rt") as gh:
-        reader = csv.reader(gh)
-        header = {}
-        index = 0
-
-        data = []
-
-        for col in next(reader):
-            header[col] = index
-            index += 1
-
-        for row in reader:
-            data.append({
-                "Latitude": float(row[header["Latitude"]]),
-                "Longitude": float(row[header["Longitude"]]),
-                "Altitude": float(row[header["Altitude"]])
-            })
-
-    if len(data) == 0:
+    try:
+        trail_analysis = analyze_trail(request.FILES["file"])
+    except FileEmpty:
         return HttpResponse("File has no records", status=http.client.BAD_REQUEST)
-
-    elv_gain = 0
-    last_elv = data[0]["Altitude"]
-
-    for point in data:
-        if point["Altitude"] > last_elv:
-            elv_gain += point["Altitude"] - last_elv
-        last_elv = point["Altitude"]
-
-    lat = mean(map(lambda x: x["Latitude"], data))
-    long = mean(map(lambda x: x["Longitude"], data))
-
-    distance = 0.0
-
-    last_point = data[0]
-    for point in data[1:]:
-        distance += get_distance(
-            (last_point["Latitude"], last_point["Longitude"]),
-            (point["Latitude"], point["Longitude"])
-        )
-        last_point = point
 
     trail_id = uuid.uuid4()
 
@@ -525,10 +469,10 @@ def upload_start(request):
         id=trail_id,
         name="upload",
         difficulty="M",
-        length=int(distance),
-        elv_gain=int(elv_gain),
-        lat=lat,
-        long=long,
+        length=int(trail_analysis.distance),
+        elv_gain=int(trail_analysis.elevation_gain),
+        lat=trail_analysis.center_latitude,
+        long=trail_analysis.center_longitude,
         owner_id=str(user_id)
     )
 
@@ -540,4 +484,3 @@ def upload_start(request):
             "id": str(trail_id)
         }
     })
-
