@@ -451,6 +451,15 @@ def upload_start(request):
     except FileEmpty:
         return HttpResponse("File has no records", status=http.client.BAD_REQUEST)
 
+    name = request.POST.get("name", "").strip()
+
+    if not name:
+        return HttpResponse("Trail has no name", status=http.client.BAD_REQUEST)
+
+    difficulty = request.POST.get("difficulty", "")
+    if difficulty not in {"E", "M", "H"}:
+        return HttpResponse("Difficulty must be E, M or H", status=http.client.BAD_REQUEST)
+
     trail_id = uuid.uuid4()
 
     s3 = boto3.client("s3", **settings.ASSETS["config"])
@@ -467,8 +476,8 @@ def upload_start(request):
 
     trail = models.Trail(
         id=trail_id,
-        name="upload",
-        difficulty="M",
+        name=name,
+        difficulty=difficulty,
         length=int(trail_analysis.distance),
         elv_gain=int(trail_analysis.elevation_gain),
         lat=trail_analysis.center_latitude,
