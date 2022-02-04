@@ -48,6 +48,7 @@ urlpatterns = [
                   path("api/trail/<uuid:trail_id>", api_views.get_trail),
                   path("api/trail/upload", api_views.upload_start),
                   path("api/trails", api_views.get_trails),
+                  path("api/upload_image", api_views.upload_image),
               ] + \
               get_api_urls_for(models.Museum, views.EditMuseum.as_view()) + \
               get_api_urls_for(models.Winery, views.EditWinery.as_view()) + \

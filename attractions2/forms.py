@@ -113,3 +113,7 @@ class ZooForm(ManagedAttractionForm):
 
 class OffRoadForm(ManagedAttractionForm):
     trip_type = forms.ModelChoiceField(queryset=models.OffRoadTripType.objects)
+
+
+class UserUploadImageForm(forms.Form):
+    image = forms.ImageField(required=True)

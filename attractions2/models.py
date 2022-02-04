@@ -568,3 +568,8 @@ class Favorite(models.Model):
         ]
 
         unique_together = [('user', 'attraction')]
+
+
+class UserImage(models.Model):
+    user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
+    image = models.ForeignKey(ImageAsset, on_delete=models.CASCADE)

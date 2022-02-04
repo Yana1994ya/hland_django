@@ -1,6 +1,7 @@
 import dataclasses
 import http.client
 import json
+import tempfile
 import time
 import uuid
 from datetime import datetime
@@ -10,6 +11,7 @@ import boto3
 import django.http.request
 import jwt
 import pytz
+from PIL import ExifTags, Image
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
@@ -17,7 +19,7 @@ from django.views.decorators.cache import cache_control, cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import condition
 
-from attractions2 import models
+from attractions2 import models, forms
 from attractions2.trail import analyze_trail, FileEmpty
 
 
@@ -460,6 +462,12 @@ def upload_start(request):
     if difficulty not in {"E", "M", "H"}:
         return HttpResponse("Difficulty must be E, M or H", status=http.client.BAD_REQUEST)
 
+    images = []
+    image_ids_str = request.POST.get("images", "")
+    if image_ids_str:
+        image_ids = list(map(int, image_ids_str.split(",")))
+        images = list(models.UserImage.objects.filter(user_id=user_id, id__in=image_ids))
+
     trail_id = uuid.uuid4()
 
     s3 = boto3.client("s3", **settings.ASSETS["config"])
@@ -485,7 +493,14 @@ def upload_start(request):
         owner_id=str(user_id)
     )
 
+    if images:
+        trail.main_image = images[0].image
+
     trail.save()
+
+    # Add any additional image to the trail
+    for additional_image in images[1:]:
+        trail.additional_images.add(additional_image.image)
 
     return JsonResponse({
         "status": "ok",
@@ -493,3 +508,76 @@ def upload_start(request):
             "id": str(trail_id)
         }
     })
+
+
+def rotate_image(image):
+    for orientation in ExifTags.TAGS.keys():
+        if ExifTags.TAGS[orientation] == 'Orientation':
+            break
+
+    exif = image.image._getexif()
+
+    if exif[orientation] == 3:
+        image = Image.open(image.file)
+        return image.rotate(180, expand=True)
+    elif exif[orientation] == 6:
+        image = Image.open(image.file)
+        return image.rotate(270, expand=True)
+    elif exif[orientation] == 8:
+        image = Image.open(image.file)
+        return image.rotate(90, expand=True)
+    else:
+        return None
+
+@csrf_exempt
+def upload_image(request):
+    if request.method != "POST":
+        return HttpResponse("Only post requests allowed", status=http.client.METHOD_NOT_ALLOWED)
+
+    user = jwt.decode(
+        request.POST["token"],
+        settings.SECRET_KEY,
+        audience=settings.AUDIENCE,
+        algorithms='HS256'
+    )
+
+    user_id = uuid.UUID(user["id"])
+
+    form = forms.UserUploadImageForm(request.POST, request.FILES)
+
+    if form.is_valid():
+        image = form.cleaned_data["image"]
+
+        rotated = rotate_image(image)
+        if rotated:
+            image.file = tempfile.TemporaryFile()
+            rotated.save(image.file, "JPEG")
+            # Seek to start
+            image.file.seek(0)
+
+            image.image = rotated
+
+        image_asset = models.ImageAsset.upload_file(
+            image,
+            old_asset=None
+        )
+
+        user_image = models.UserImage(
+            user_id=user_id,
+            image=image_asset
+        )
+
+        user_image.save()
+
+        return JsonResponse({
+            "status": "ok",
+            "image_id": user_image.id
+        })
+    else:
+        return JsonResponse({
+            "status": "error",
+            "code": "NotFound",
+            "message": "Failed to validate image"
+        })
+
+
