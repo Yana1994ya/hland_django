@@ -36,8 +36,8 @@ def get_api_urls_for(model, edit_view):
 urlpatterns = [
                   path("", views.homepage, name="attractions_homepage"),
                   path("api/regions", api_views.get_regions),
-                  path("api/museum_domains", api_views.get_museum_domains),
-                  path("api/off_road_trip_types", api_views.get_off_road_trip_types),
+                  path("api/museum_domains", api_views.get_attraction_filter, {"model": models.MuseumDomain}),
+                  path("api/off_road_trip_types", api_views.get_attraction_filter, {"model": models.OffRoadTripType}),
                   path("api/visit", api_views.visit),
                   path("api/history", api_views.history),
                   path("api/history/delete", api_views.delete_history),
@@ -48,6 +48,9 @@ urlpatterns = [
                   path("api/trail/<uuid:trail_id>", api_views.get_trail),
                   path("api/trail/upload", api_views.upload_start),
                   path("api/trails", api_views.get_trails),
+                  path("api/trails/suitabilities", api_views.get_attraction_filter, {"model": models.TrailSuitability}),
+                  path("api/trails/attractions", api_views.get_attraction_filter, {"model": models.TrailAttraction}),
+                  path("api/trails/activities", api_views.get_attraction_filter, {"model": models.TrailActivity}),
                   path("api/upload_image", api_views.upload_image),
               ] + \
               get_api_urls_for(models.Museum, views.EditMuseum.as_view()) + \

@@ -5,7 +5,7 @@ import tempfile
 import time
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Type, List
 
 import boto3
 import django.http.request
@@ -36,23 +36,6 @@ def get_regions(request):
         "regions": list(map(
             lambda x: x.to_json,
             models.Region.objects.order_by("name")
-        ))
-    })
-
-
-def _get_museum_domains_last_modified(request):
-    return models.MuseumDomain.objects.latest("date_modified").date_modified
-
-
-# cache regions for 1 day
-@cache_page(60 * 60 * 24)
-@condition(last_modified_func=_get_museum_domains_last_modified)
-def get_museum_domains(request):
-    return JsonResponse({
-        "status": "ok",
-        "domains": list(map(
-            lambda x: x.to_json,
-            models.MuseumDomain.objects.order_by("name")
         ))
     })
 
@@ -142,6 +125,13 @@ def login(request):
         # All users start as non anonymized
         "anonymized": False
     })
+
+    if user.banned_until is not None and user.banned_until > datetime.now():
+        return JsonResponse({
+            "status": "error",
+            "code": "Banned",
+            "message": "This user is banned until:" + user.banned_until.isoformat()
+        })
 
     # Only update details if user is not anonymized
     if not user.anonymized:
@@ -350,19 +340,13 @@ def map_attractions(request):
     })
 
 
-def _get_off_road_trip_types_last_modified(request):
-    return models.OffRoadTripType.objects.latest("date_modified").date_modified
-
-
-# cache regions for 1 day
 @cache_page(60 * 60 * 24)
-@condition(last_modified_func=_get_off_road_trip_types_last_modified)
-def get_off_road_trip_types(request):
+def get_attraction_filter(request, model: Type[models.AttractionFilter]):
     return JsonResponse({
         "status": "ok",
-        "trip_types": list(map(
+        model.api_multiple_key(): list(map(
             lambda x: x.to_json,
-            models.OffRoadTripType.objects.order_by("name")
+            model.objects.order_by("name")
         ))
     })
 
@@ -408,7 +392,33 @@ def get_trail(request, trail_id: str):
 
 
 def _trails_query_set(request) -> Optional[datetime]:
-    return models.Trail.objects.all()
+    query_set = models.Trail.objects.all()
+
+    if "length_start" in request.GET:
+        query_set = query_set.filter(length__gte=int(request.GET["length_start"]))
+
+    if "length_end" in request.GET:
+        query_set = query_set.filter(length__lte=int(request.GET["length_end"]))
+
+    if "elevation_gain_start" in request.GET:
+        query_set = query_set.filter(elv_gain__gte=int(request.GET["elevation_gain_start"]))
+
+    if "elevation_gain_end" in request.GET:
+        query_set = query_set.filter(elv_gain__lte=int(request.GET["elevation_gain_end"]))
+
+    if "difficulty" in request.GET:
+        query_set = query_set.filter(difficulty__in=request.GET.getlist("difficulty"))
+
+    if "activities" in request.GET:
+        query_set = query_set.filter(activities__pk__in=request.GET.getlist("activities"))
+
+    if "attractions" in request.GET:
+        query_set = query_set.filter(attractions__pk__in=request.GET.getlist("attractions"))
+
+    if "suitabilities" in request.GET:
+        query_set = query_set.filter(suitabilities__pk__in=request.GET.getlist("suitabilities"))
+
+    return query_set
 
 
 def _trails_modified(request):
@@ -502,6 +512,25 @@ def upload_start(request):
     for additional_image in images[1:]:
         trail.additional_images.add(additional_image.image)
 
+    def get_tags(field_name: str, model: Type[models.AttractionFilter]) -> List[models.AttractionFilter]:
+        str_ids = request.POST.get(field_name, "").strip()  # type: str
+
+        if not str_ids:
+            return []
+
+        ids = map(int, str_ids.split(","))
+
+        return list(model.objects.filter(pk__in=ids))
+
+    for activity in get_tags("activities", models.TrailActivity):
+        trail.activities.add(activity)
+
+    for attraction in get_tags("attractions", models.TrailAttraction):
+        trail.attractions.add(attraction)
+
+    for suitability in get_tags("suitabilities", models.TrailSuitability):
+        trail.suitabilities.add(suitability)
+
     return JsonResponse({
         "status": "ok",
         "trail": {
@@ -511,6 +540,12 @@ def upload_start(request):
 
 
 def rotate_image(image):
+    """
+    Make sure the images are rotated correctly in a way where we don't need to consider orientation
+    exif, that makes thumbnail generation easier.
+    """
+    orientation = None
+
     for orientation in ExifTags.TAGS.keys():
         if ExifTags.TAGS[orientation] == 'Orientation':
             break
@@ -528,6 +563,7 @@ def rotate_image(image):
         return image.rotate(90, expand=True)
     else:
         return None
+
 
 @csrf_exempt
 def upload_image(request):

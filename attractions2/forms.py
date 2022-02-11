@@ -1,5 +1,6 @@
 from django import forms
 
+from attractions2 import base_models
 from attractions2 import models
 
 
@@ -90,7 +91,7 @@ class ManagedAttractionForm(BaseAttractionForm):
         "type": "url"
     }), required=False)
 
-    region = forms.ModelChoiceField(queryset=models.Region.objects)
+    region = forms.ModelChoiceField(queryset=base_models.Region.objects)
 
     telephone = forms.RegexField(
         regex="^[0-9]{9,10}$"
