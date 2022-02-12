@@ -52,6 +52,8 @@ urlpatterns = [
                   path("api/trails/attractions", api_views.get_attraction_filter, {"model": models.TrailAttraction}),
                   path("api/trails/activities", api_views.get_attraction_filter, {"model": models.TrailActivity}),
                   path("api/upload_image", api_views.upload_image),
+                  path("api/add_comment", api_views.add_comment),
+                  path("api/comments/<object_type>/<content_id>", api_views.get_comments),
               ] + \
               get_api_urls_for(models.Museum, views.EditMuseum.as_view()) + \
               get_api_urls_for(models.Winery, views.EditWinery.as_view()) + \

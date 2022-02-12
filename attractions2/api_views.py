@@ -13,18 +13,19 @@ import jwt
 import pytz
 from PIL import ExifTags, Image
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import cache_control, cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import condition
 
-from attractions2 import models, forms
+from attractions2 import models, forms, base_models
 from attractions2.trail import analyze_trail, FileEmpty
 
 
 def _get_regions_last_modified(request):
-    return models.Region.objects.latest("date_modified").date_modified
+    return base_models.Region.objects.latest("date_modified").date_modified
 
 
 # cache regions for 1 day
@@ -35,7 +36,7 @@ def get_regions(request):
         "status": "ok",
         "regions": list(map(
             lambda x: x.to_json,
-            models.Region.objects.order_by("name")
+            base_models.Region.objects.order_by("name")
         ))
     })
 
@@ -385,6 +386,13 @@ def get_trail(request, trail_id: str):
         "additional_images": additional_images
     })
 
+    if trail.main_image:
+        data["main_image"] = trail.main_image.landscape_thumb(900).to_json
+
+    data["activities"] = list(map(lambda x: x.to_json, trail.activities.all()))
+    data["attractions"] = list(map(lambda x: x.to_json, trail.attractions.all()))
+    data["suitabilities"] = list(map(lambda x: x.to_json, trail.suitabilities.all()))
+
     return JsonResponse({
         "status": "ok",
         "trail": data
@@ -616,4 +624,83 @@ def upload_image(request):
             "message": "Failed to validate image"
         })
 
+def resolve_object_type(object_type) -> Optional[ContentType]:
+    if object_type == "museum":
+        return ContentType.objects.get(model="museum", app_label="attractions2")
+    elif object_type == "winery":
+        return ContentType.objects.get(model="winery", app_label="attractions2")
+    elif object_type == "zoo":
+        return ContentType.objects.get(model="zoo", app_label="attractions2")
+    elif object_type == "trail":
+        return ContentType.objects.get(model="trail", app_label="attractions2")
+    elif object_type == "off_road_trip":
+        return ContentType.objects.get(model="offroad", app_label="attractions2")
 
+    return None
+
+
+@with_user_id
+def add_comment(request: UserRequest):
+    object_type = request.data["object_type"]
+
+    ct = resolve_object_type(object_type)
+    if ct is None:
+        return JsonResponse({
+            "status": "error",
+            "code": "NotFound",
+            "message": f"Object of type: {object_type} is not found"
+        })
+
+    comment_text = request.data["comment_text"]
+
+    if not comment_text:
+        return JsonResponse({
+            "status": "error",
+            "code": "InvalidData",
+            "message": "Comment text is not found"
+        })
+
+    content_id = request.data["content_id"]
+
+    # Make sure the data we're referring a comment to actually exists
+    if ct.model_class().objects.filter(id=content_id).count() == 0:
+        return JsonResponse({
+            "status": "error",
+            "code": "InvalidData",
+            "message": "Content for comment not found"
+        })
+
+    comment = models.UserComment(
+        user_id=request.user_id,
+        text=comment_text,
+        content_type=ct,
+        content_id=str(content_id)
+    )
+
+    comment.save()
+
+    return JsonResponse({
+        "status": "ok",
+        "comment_id": comment.id
+    })
+
+
+def get_comments(request, object_type, content_id):
+    ct = resolve_object_type(object_type)
+    if ct is None:
+        return JsonResponse({
+            "status": "error",
+            "code": "NotFound",
+            "message": f"Object of type: {object_type} is not found"
+        })
+
+    return JsonResponse({
+        "status": "ok",
+        "comments": list(map(
+            lambda x: x.to_json,
+            models.UserComment.objects.filter(
+                content_type=ct,
+                content_id=content_id
+            )
+        ))
+    })

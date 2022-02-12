@@ -325,10 +325,19 @@ class UserComment(models.Model):
         on_delete=models.SET_NULL
     )
 
-    content_id = models.PositiveIntegerField()
+    # Must be char field because it can either be UUID for trail or int for the rest
+    content_id = models.CharField(max_length=50)
     text = models.TextField()
 
     images = models.ManyToManyField(
         ImageAsset,
         related_name="comment_images"
     )
+
+    @property
+    def to_json(self):
+        return {
+            "id": self.id,
+            "text": self.text,
+            "user": self.user.to_json
+        }
