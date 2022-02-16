@@ -54,6 +54,10 @@ urlpatterns = [
                   path("api/upload_image", api_views.upload_image),
                   path("api/add_comment", api_views.add_comment),
                   path("api/comments/<object_type>/<content_id>", api_views.get_comments),
+                  path(f"trails", views.display, {"page_number": 1, "model": models.Trail}, name="trail"),
+                  path(f"trails/page<int:page_number>", views.display, {"model": models.Trail}, name="trail"),
+                  path(f"trail/<uuid:trail_id>", views.edit_trail, name="edit_trail"),
+                  path(f"trail", views.edit_trail, name="add_trail"),
               ] + \
               get_api_urls_for(models.Museum, views.EditMuseum.as_view()) + \
               get_api_urls_for(models.Winery, views.EditWinery.as_view()) + \

@@ -1,8 +1,15 @@
-from typing import NoReturn
+import uuid
+from typing import NoReturn, Optional
+from uuid import UUID
 
+import boto3
+from django.conf import settings
+from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
+from django.http import HttpResponseRedirect
 from django.shortcuts import render
+from django.urls import reverse
 
 from attractions2 import forms, models
 from attractions2.base_views import EditView
@@ -90,3 +97,107 @@ class EditOffRoad(EditView):
     @classmethod
     def template_name(cls) -> str:
         return "attractions/edit_offroad.html"
+
+
+def edit_trail(request, trail_id: Optional[UUID] = None):
+    if trail_id is None:
+        trail = models.Trail()
+        initial = {}
+        action = reverse(edit_trail)
+    else:
+        trail = models.Trail.objects.get(id=trail_id)
+
+        initial = {
+            "name": trail.name,
+            "difficulty": trail.difficulty,
+            "owner": trail.owner,
+            "suitabilities": trail.suitabilities.all(),
+            "attractions": trail.attractions.all(),
+            "activities": trail.activities.all(),
+            "length": trail.length,
+            "elevation_gain": trail.elv_gain,
+            "long": trail.long,
+            "lat": trail.lat
+        }
+
+        action = reverse(edit_trail, kwargs={"trail_id": trail_id})
+
+    if request.method == "POST":
+        form = forms.TrailForm(request.POST, request.FILES, initial=initial)
+
+        for additional_image_id in request.POST.getlist("delete_additional"):
+            try:
+                image = trail.additional_images.get(id=int(additional_image_id))
+                image.delete()
+            except models.ImageAsset.DoesNotExist:
+                pass
+
+        if form.is_valid():
+            if trail.id is None:
+                trail.id = uuid.uuid4()
+
+            coordinates = form.cleaned_data["coordinates"]
+            if coordinates is not None:
+                s3 = boto3.client("s3", **settings.ASSETS["config"])
+                key = settings.ASSETS["prefix"] + "trails/" + str(trail.id) + ".csv.gz"
+                bucket = settings.ASSETS["bucket"]
+
+                coordinates.seek(0)
+                s3.upload_fileobj(coordinates, bucket, key, ExtraArgs={
+                    "ContentType": "text/csv",
+                    "ContentEncoding": "gzip",
+                    "ACL": "public-read",
+                    "CacheControl": "public, max-age=2592000"
+                })
+
+                trail.long = form.cleaned_data["long"]
+                trail.lat = form.cleaned_data["lat"]
+                trail.length = form.cleaned_data["length"]
+                trail.elv_gain = form.cleaned_data["elevation_gain"]
+
+            trail.owner = form.cleaned_data["owner"]
+            trail.difficulty = form.cleaned_data["difficulty"]
+            trail.name = form.cleaned_data["name"]
+
+            main_image = form.cleaned_data["image"]
+            if main_image:
+                trail.main_image = models.ImageAsset.upload_file(
+                    main_image,
+                    old_asset=trail.main_image
+                )
+
+            trail.save()
+
+            trail.suitabilities.set(form.cleaned_data["suitabilities"], clear=True)
+            trail.activities.set(form.cleaned_data["activities"], clear=True)
+            trail.attractions.set(form.cleaned_data["attractions"], clear=True)
+
+            additional_image = form.cleaned_data["additional_image"]
+            if additional_image:
+                trail.additional_images.add(models.ImageAsset.upload_file(
+                    additional_image,
+                    old_asset=None
+                ))
+
+            messages.add_message(request, messages.INFO, f"Trail {trail.name} was updated/created successfully")
+
+            if request.POST.get("next") == "exit":
+                return reverse("trail")
+            else:
+                return HttpResponseRedirect(reverse(edit_trail, kwargs={"trail_id": trail.id}))
+
+    else:
+        form = forms.TrailForm(initial=initial)
+
+    return render(
+        request,
+        "attractions/trail.html",
+        {
+            "form": form,
+            "instance": trail,
+            "action": action
+        }
+    )
+
+
+

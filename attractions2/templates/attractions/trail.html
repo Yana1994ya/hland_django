@@ -1,38 +1,140 @@
-{% extends "attractions/base_form.html" %}
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
 
-{% block form_title %}
-    {% if create %}
-        <h1>Create Trail</h1>
-    {% else %}
-        <h1>Edit Trail</h1>
-    {% endif %}
-{% endblock %}
+{% block body %}
+    {% block form_title %}
+    {% endblock %}
 
-{% block extra_fields %}
-    <div class="col-4">
-        {% for error in form.difficulty.error_messages %}
-            <div class="invalid-feedback">{{ error }}</div>
-        {% endfor %}
-        <label for="id_difficulty" class="form-label">Difficulty</label>
-        {{ form.difficulty }}
-    </div>
+    <form action="{{ action }}"
+          method="post"
+          enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="row g-3 pb-2">
+            <div class="col-12">
+                {% bootstrap_field form.name %}
+            </div>
 
-    <div class="col-4">
-        {% for error in form.length.error_messages %}
-            <div class="invalid-feedback">{{ error }}</div>
-        {% endfor %}
-        <label for="id_length" class="form-label">Length</label>
-        {{ form.length }}
-    </div>
+            <div class="col-6">
+                {% bootstrap_field form.difficulty %}
+            </div>
 
-    <div class="col-4">
-        {% for error in form.elv_gain.error_messages %}
-            <div class="invalid-feedback">{{ error }}</div>
-        {% endfor %}
-        <label for="id_elv_gain" class="form-label">Elv. Gain</label>
-        {{ form.elv_gain }}
-    </div>
-{% endblock %}
+            <div class="col-6">
+                {% bootstrap_field form.owner %}
+            </div>
 
-{% block managed %}
+            <div class="col-4">
+                {% bootstrap_field form.suitabilities %}
+            </div>
+
+            <div class="col-4">
+                {% bootstrap_field form.activities %}
+            </div>
+
+            <div class="col-4">
+                {% bootstrap_field form.attractions %}
+            </div>
+
+            <div class="col-4">
+                {% bootstrap_field form.coordinates %}
+            </div>
+            <div class="col-2">
+                {% bootstrap_field form.length %}
+            </div>
+            <div class="col-2">
+                {% bootstrap_field form.elevation_gain %}
+            </div>
+            <div class="col-2">
+                {% bootstrap_field form.long %}
+            </div>
+            <div class="col-2">
+                {% bootstrap_field form.lat %}
+            </div>
+        </div>
+        <div class="row">
+            <div class="row">
+                <div class="col-6">
+                    <label for="id_image" class="form-label">Main Image</label>
+                </div>
+                <div class="col-6">
+                    <label for="id_additional_image" class="form-label">Additional image</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <div class="row">
+                        {% if instance.main_image %}
+                            <img
+                                    src="{{ instance.main_image.thumb_600.url }}"
+                                    width="600"
+                                    alt="{{ attraction.name }}"
+                            />
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="row g-3">
+                        {% if instance.id %}
+                            {% for additional_image in instance.additional_images.all %}
+                                <div class="col-6">
+                                    <div class="row">
+                                        <img
+                                                src="{{ additional_image.thumb_300.url }}"
+                                                width="300"
+                                                alt="{{ attraction.name }}"
+                                        />
+                                    </div>
+                                    <div class="form-check">
+                                        <input
+                                                type="checkbox"
+                                                class="form-check-input"
+                                                name="delete_additional"
+                                                value="{{ additional_image.id }}"
+                                                id="id_delete_additional_{{ additional_image.id }}"
+                                        />
+                                        <label
+                                                class="form-check-label"
+                                                for="id_delete_additional_{{ additional_image.id }}"
+                                        >
+                                            Delete
+                                        </label>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="row pb-3 pt-3">
+                <div class="col-6">
+                    {% bootstrap_field form.image %}
+                </div>
+                <div class="col-6">
+                    {% bootstrap_field form.additional_image %}
+                </div>
+            </div>
+            <div class="row pb-3">
+                <div class="col-12">
+                    <button
+                            class="btn btn-primary"
+                            type="submit"
+                            name="next"
+                            value="stay"
+                    >Save
+                    </button>
+
+                    <button
+                            class="btn btn-primary"
+                            type="submit"
+                            name="next"
+                            value="exit"
+                    >Save & Exit
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+
+    </form>
+
 {% endblock %}

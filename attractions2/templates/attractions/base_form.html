@@ -18,17 +18,13 @@
                 {% bootstrap_field form.description %}
             </div>
 
-            {% if form.website %}
-                <div class="col-12">
-                    {% bootstrap_field form.website %}
-                </div>
-            {% endif %}
+            <div class="col-12">
+                {% bootstrap_field form.website %}
+            </div>
 
-            {% if form.address %}
-                <div class="col-12">
-                    {% bootstrap_field form.address %}
-                </div>
-            {% endif %}
+            <div class="col-12">
+                {% bootstrap_field form.address %}
+            </div>
 
             <div class="col-6">
                 {% bootstrap_field form.lat %}
@@ -38,23 +34,18 @@
                 {% bootstrap_field form.long %}
             </div>
 
-            {% if form.region %}
-                <div class="col-4">
-                    {% bootstrap_field form.region %}
-                </div>
-            {% endif %}
+            <div class="col-4">
+                {% bootstrap_field form.region %}
+            </div>
 
-            {% if form.city %}
-                <div class="col-4">
-                    {% bootstrap_field form.city %}
-                </div>
-            {% endif %}
 
-            {% if form.telephone %}
-                <div class="col-4">
-                    {% bootstrap_field form.telephone %}
-                </div>
-            {% endif %}
+            <div class="col-4">
+                {% bootstrap_field form.city %}
+            </div>
+
+            <div class="col-4">
+                {% bootstrap_field form.telephone %}
+            </div>
 
             {% block extra_fields %}
             {% endblock %}
@@ -129,14 +120,16 @@
                             type="submit"
                             name="next"
                             value="stay"
-                    >Save</button>
+                    >Save
+                    </button>
 
                     <button
                             class="btn btn-primary"
                             type="submit"
                             name="next"
                             value="exit"
-                    >Save & Exit</button>
+                    >Save & Exit
+                    </button>
                 </div>
             </div>
 

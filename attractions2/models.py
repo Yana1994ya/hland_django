@@ -281,6 +281,9 @@ class GoogleUser(models.Model):
 
         return data
 
+    def __str__(self):
+        return self.name
+
 
 class History(models.Model):
     user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
