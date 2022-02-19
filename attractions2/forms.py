@@ -11,6 +11,17 @@ from attractions2 import models
 from attractions2.trail import analyze_trail
 
 
+class TagField(forms.ModelChoiceField):
+    def __init__(self, queryset):
+        super(TagField, self).__init__(
+            queryset,
+            required=False
+        )
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+
 class BaseAttractionForm(forms.Form):
     name = forms.CharField()
 
@@ -98,7 +109,7 @@ class ManagedAttractionForm(BaseAttractionForm):
         "type": "url"
     }), required=False)
 
-    region = forms.ModelChoiceField(queryset=base_models.Region.objects)
+    region = TagField(queryset=base_models.Region.objects)
 
     telephone = forms.RegexField(
         regex="^[0-9]{9,10}$"
@@ -108,7 +119,7 @@ class ManagedAttractionForm(BaseAttractionForm):
 
 
 class MuseumForm(ManagedAttractionForm):
-    domain = forms.ModelChoiceField(queryset=models.MuseumDomain.objects)
+    domain = TagField(queryset=models.MuseumDomain.objects)
 
 
 class WineryForm(ManagedAttractionForm):
@@ -120,16 +131,28 @@ class ZooForm(ManagedAttractionForm):
 
 
 class OffRoadForm(ManagedAttractionForm):
-    trip_type = forms.ModelChoiceField(queryset=models.OffRoadTripType.objects)
+    trip_type = TagField(queryset=models.OffRoadTripType.objects)
+
+
+class WaterSportsForm(ManagedAttractionForm):
+    attraction_type = TagField(
+        queryset=models.WaterSportsAttractionType.objects
+    )
+
+
+class RockClimbingForm(ManagedAttractionForm):
+    attraction_type = TagField(
+        queryset=models.RockClimbingType.objects
+    )
 
 
 class UserUploadImageForm(forms.Form):
     image = forms.ImageField(required=True)
 
 
-class TagField(forms.ModelMultipleChoiceField):
+class MultipleTagField(forms.ModelMultipleChoiceField):
     def __init__(self, query_set):
-        super(TagField, self).__init__(
+        super(MultipleTagField, self).__init__(
             query_set,
             widget=forms.CheckboxSelectMultiple,
             required=False
@@ -171,14 +194,14 @@ class TrailForm(forms.Form):
         "readonly": "readonly"
     }))
 
-    suitabilities = TagField(
+    suitabilities = MultipleTagField(
         models.TrailSuitability.objects.all()
     )
-    activities = TagField(
+    activities = MultipleTagField(
         models.TrailActivity.objects.all(),
     )
 
-    attractions = TagField(
+    attractions = MultipleTagField(
         models.TrailAttraction.objects.all(),
     )
 

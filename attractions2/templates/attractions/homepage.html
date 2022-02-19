@@ -56,7 +56,12 @@
             </div>
 
             <div class="feature col">
+                <img src="{% static "attractions/rock_climbing.jpg" %}" width="150" height="100"
+                     alt="Rock climbing attractions"/>
+                <h2>Rock climbing attractions</h2>
+                <p>View and edit the rock climbing attractions offered in the application</p>
             </div>
+
             <!-- links for second row -->
             <div class="features col mt-0">
                 <a href="{% url "offroad" %}" class="icon-link">View Off-Road trips &gt;</a>
@@ -66,6 +71,25 @@
                 <a href="{% url "trail" %}" class="icon-link">View trails &gt;</a>
             </div>
 
+            <div class="features col mt-0">
+                <a href="{% url "rock_climbing" %}" class="icon-link">View rock climbing attractions &gt;</a>
+            </div>
+
+            <!-- Third row -->
+            <div class="feature col">
+                <img src="{% static "attractions/water_sports.jpg" %}" width="150" height="100"
+                     alt="Water sports attractions"/>
+                <h2>Water sports attractions</h2>
+                <p>View and edit the water sports attractions offered in the application</p>
+            </div>
+
+            <div class="feature col"></div>
+            <div class="feature col"></div>
+
+            <!-- links for third row -->
+            <div class="features col mt-0">
+                <a href="{% url "water_sports" %}" class="icon-link">View water sports attractions &gt;</a>
+            </div>
 
         </div>
     </div>

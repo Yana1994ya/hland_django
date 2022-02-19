@@ -99,6 +99,54 @@ class EditOffRoad(EditView):
         return "attractions/edit_offroad.html"
 
 
+class EditWaterSports(EditView):
+    form_class = forms.WaterSportsForm
+    model = models.WaterSports
+
+    def success_message(self, instance: models.OffRoad) -> str:
+        return f"Water sports attraction {instance.name} was saved successfully"
+
+    def get_initial(self, instance: models.WaterSports) -> dict:
+        initial = super().get_initial(instance)
+
+        if instance.id is not None:
+            initial["attraction_type"] = instance.attraction_type
+
+        return initial
+
+    def update_instance(self, instance: models.WaterSports, cleaned_data: dict):
+        super().update_instance(instance, cleaned_data)
+        instance.attraction_type = cleaned_data["attraction_type"]
+
+    @classmethod
+    def template_name(cls) -> str:
+        return "attractions/edit_water_sports.html"
+
+
+class EditRockClimbing(EditView):
+    form_class = forms.RockClimbingForm
+    model = models.RockClimbing
+
+    def success_message(self, instance: models.RockClimbing) -> str:
+        return f"Rock climbing attraction {instance.name} was saved successfully"
+
+    def get_initial(self, instance: models.RockClimbing) -> dict:
+        initial = super().get_initial(instance)
+
+        if instance.id is not None:
+            initial["attraction_type"] = instance.attraction_type
+
+        return initial
+
+    def update_instance(self, instance: models.RockClimbing, cleaned_data: dict):
+        super().update_instance(instance, cleaned_data)
+        instance.attraction_type = cleaned_data["attraction_type"]
+
+    @classmethod
+    def template_name(cls) -> str:
+        return "attractions/edit_rock_climbing.html"
+
+
 def edit_trail(request, trail_id: Optional[UUID] = None):
     if trail_id is None:
         trail = models.Trail()

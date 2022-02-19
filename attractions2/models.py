@@ -127,6 +127,90 @@ class OffRoad(Attraction):
         return qset
 
 
+class WaterSportsAttractionType(AttractionFilter):
+    @classmethod
+    def api_single_key(cls) -> str:
+        return "water_sports_attraction_type"
+
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        return "water_sports_attraction_types"
+
+
+class WaterSports(Attraction):
+    attraction_type = models.ForeignKey(WaterSportsAttractionType, on_delete=models.CASCADE)
+
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        return "water_sports"
+
+    @classmethod
+    def api_single_key(cls) -> str:
+        return "water_sports"
+
+    @classmethod
+    def short_related(cls) -> List[str]:
+        return super().short_related() + ["attraction_type"]
+
+    @property
+    def to_short_json(self):
+        result = super().to_short_json
+
+        result.update({
+            "attraction_type": self.attraction_type.to_json
+        })
+
+        return result
+
+    @classmethod
+    def explore_filter(cls, qset, request):
+        qset = super().explore_filter(qset, request)
+
+        if "attraction_type_id" in request.GET:
+            qset = qset.filter(attraction_type_id__in=list(map(
+                int,
+                request.GET.getlist("attraction_type_id"),
+            )))
+
+        return qset
+
+
+class RockClimbingType(AttractionFilter):
+    @classmethod
+    def api_single_key(cls) -> str:
+        return "rock_climbing_type"
+
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        return "rock_climbing_types"
+
+
+class RockClimbing(Attraction):
+    attraction_type = models.ForeignKey(RockClimbingType, on_delete=models.CASCADE)
+
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        return "rock_climbing"
+
+    @classmethod
+    def api_single_key(cls) -> str:
+        return "rock_climbing"
+
+    @classmethod
+    def short_related(cls) -> List[str]:
+        return super().short_related() + ["attraction_type"]
+
+    @property
+    def to_short_json(self):
+        result = super().to_short_json
+
+        result.update({
+            "attraction_type": self.attraction_type.to_json
+        })
+
+        return result
+
+
 class TrailDifficulty(models.TextChoices):
     EASY = "E", _("Easy")
     NORMAL = "N", _("Normal")

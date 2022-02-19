@@ -24,7 +24,6 @@ class TrailSuitabilityAdmin(admin.ModelAdmin):
 
 admin.site.register(models.TrailSuitability, TrailSuitabilityAdmin)
 
-
 class TrailAttractionAdmin(admin.ModelAdmin):
     pass
 
@@ -37,3 +36,15 @@ class TrailActivityAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.TrailActivity, TrailActivityAdmin)
+
+
+class WaterSportAttractionTypeAdmin(admin.ModelAdmin):
+    pass
+
+admin.site.register(models.WaterSportsAttractionType, WaterSportAttractionTypeAdmin)
+
+
+class RockClimbingTypeAdmin(admin.ModelAdmin):
+    pass
+
+admin.site.register(models.RockClimbingType, RockClimbingTypeAdmin)

@@ -38,6 +38,8 @@ urlpatterns = [
                   path("api/regions", api_views.get_regions),
                   path("api/museum_domains", api_views.get_attraction_filter, {"model": models.MuseumDomain}),
                   path("api/off_road_trip_types", api_views.get_attraction_filter, {"model": models.OffRoadTripType}),
+                  path("api/water_sport_types", api_views.get_attraction_filter, {"model": models.WaterSportsAttractionType}),
+                  path("api/rock_climbing_types", api_views.get_attraction_filter, {"model": models.RockClimbingType}),
                   path("api/visit", api_views.visit),
                   path("api/history", api_views.history),
                   path("api/history/delete", api_views.delete_history),
@@ -62,4 +64,6 @@ urlpatterns = [
               get_api_urls_for(models.Museum, views.EditMuseum.as_view()) + \
               get_api_urls_for(models.Winery, views.EditWinery.as_view()) + \
               get_api_urls_for(models.Zoo, views.EditZoo.as_view()) + \
-              get_api_urls_for(models.OffRoad, views.EditOffRoad.as_view())
+              get_api_urls_for(models.OffRoad, views.EditOffRoad.as_view()) + \
+              get_api_urls_for(models.WaterSports, views.EditWaterSports.as_view()) + \
+              get_api_urls_for(models.RockClimbing, views.EditRockClimbing.as_view())

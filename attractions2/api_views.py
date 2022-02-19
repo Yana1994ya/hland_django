@@ -426,6 +426,19 @@ def _trails_query_set(request) -> Optional[datetime]:
     if "suitabilities" in request.GET:
         query_set = query_set.filter(suitabilities__pk__in=request.GET.getlist("suitabilities"))
 
+    # For map
+    if "lon_min" in request.GET:
+        query_set = query_set.filter(long__gte=float(request.GET["lon_min"]))
+
+    if "lon_max" in request.GET:
+        query_set = query_set.filter(long__lte=float(request.GET["lon_max"]))
+
+    if "lat_min" in request.GET:
+        query_set = query_set.filter(lat__gte=float(request.GET["lat_min"]))
+
+    if "lat_max" in request.GET:
+        query_set = query_set.filter(lat__lte=float(request.GET["lat_max"]))
+
     return query_set
 
 
@@ -623,6 +636,7 @@ def upload_image(request):
             "code": "NotFound",
             "message": "Failed to validate image"
         })
+
 
 def resolve_object_type(object_type) -> Optional[ContentType]:
     if object_type == "museum":
