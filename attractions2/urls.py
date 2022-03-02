@@ -1,3 +1,4 @@
+from django.contrib.admin.views.decorators import staff_member_required
 from django.urls import path
 
 from attractions2 import api_views, models, views
@@ -24,9 +25,9 @@ def get_api_urls_for(model, edit_view):
             api_views.favorites_list,
             {"model": model}
         ),
-        path(f"add_{single}", edit_view, {f"{single}_id": None},
+        path(f"add_{single}", staff_member_required(edit_view), {f"{single}_id": None},
              name=f"add_{single}"),
-        path(f"edit_{single}/<int:{single}_id>", edit_view,
+        path(f"edit_{single}/<int:{single}_id>", staff_member_required(edit_view),
              name=f"edit_{single}"),
         path(f"{multi}", views.display, {"page_number": 1, "model": model}, name=multi),
         path(f"{multi}/page<int:page_number>", views.display, {"model": model}, name=multi),
@@ -41,10 +42,14 @@ urlpatterns = [
                   path("api/water_sport_types", api_views.get_attraction_filter, {"model": models.WaterSportsAttractionType}),
                   path("api/rock_climbing_types", api_views.get_attraction_filter, {"model": models.RockClimbingType}),
                   path("api/visit", api_views.visit),
+                  path("api/visit/trail", api_views.visit_trail),
                   path("api/history", api_views.history),
+                  path("api/history/trails", api_views.history_trails),
                   path("api/history/delete", api_views.delete_history),
                   path("api/favorite", api_views.favorite),
+                  path("api/favorite/trail", api_views.favorite_trail),
                   path("api/favorites", api_views.favorites),
+                  path("api/favorites/trails", api_views.favorites_trails),
                   path("api/login", api_views.login),
                   path("api/map", api_views.map_attractions),
                   path("api/trail/<uuid:trail_id>", api_views.get_trail),
@@ -59,6 +64,8 @@ urlpatterns = [
                   path(f"trails", views.display, {"page_number": 1, "model": models.Trail}, name="trail"),
                   path(f"trails/page<int:page_number>", views.display, {"model": models.Trail}, name="trail"),
                   path(f"trail/<uuid:trail_id>", views.edit_trail, name="edit_trail"),
+                  path(f"trail/<uuid:trail_id>/upload", views.trail_upload, name="trail_upload"),
+                  path(f"<int:attraction_id>/upload", views.attraction_upload, name="attraction_upload"),
                   path(f"trail", views.edit_trail, name="add_trail"),
               ] + \
               get_api_urls_for(models.Museum, views.EditMuseum.as_view()) + \

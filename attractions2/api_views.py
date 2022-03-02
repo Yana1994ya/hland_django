@@ -5,7 +5,7 @@ import tempfile
 import time
 import uuid
 from datetime import datetime
-from typing import Optional, Type, List
+from typing import Optional, Type, List, Dict
 
 import boto3
 import django.http.request
@@ -219,21 +219,61 @@ def visit(request: UserRequest):
 
 
 @with_user_id
+def visit_trail(request: UserRequest):
+    trail_id = request.data["id"]
+
+    now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+
+    history_obj, created = models.TrailHistory.objects.get_or_create(
+        user_id=request.user_id,
+        trail=models.Trail.objects.get(id=trail_id),
+        defaults={
+            "created": now,
+            "last_visited": now
+        }
+    )
+
+    if not created:
+        history_obj.last_visited = now
+        history_obj.save()
+
+    return JsonResponse({
+        "status": "ok"
+    })
+
+
+def count_items(user_id: uuid.UUID, key: str) -> Dict[str, int]:
+    attraction_filter = {
+        key + "__user_id": user_id
+    }
+
+    trail_filter = {
+        "trail" + key + "__user_id": user_id
+    }
+
+    return {
+        "museums": models.Museum.objects.filter(**attraction_filter).count(),
+        "wineries": models.Winery.objects.filter(**attraction_filter).count(),
+        "zoos": models.Zoo.objects.filter(**attraction_filter).count(),
+        "off_road": models.OffRoad.objects.filter(**attraction_filter).count(),
+        "trails": models.Trail.objects.filter(**trail_filter).count(),
+        "water_sports": models.WaterSports.objects.filter(**attraction_filter).count(),
+        "rock_climbing": models.RockClimbing.objects.filter(**attraction_filter).count(),
+    }
+
+
+@with_user_id
 def history(request: UserRequest):
     return JsonResponse({
         "status": "ok",
-        "visited": {
-            "museums": models.Museum.objects.filter(history__user_id=request.user_id).count(),
-            "wineries": models.Winery.objects.filter(history__user_id=request.user_id).count(),
-            "zoos": models.Zoo.objects.filter(history__user_id=request.user_id).count(),
-            "off_road": models.OffRoad.objects.filter(history__user_id=request.user_id).count(),
-        }
+        "visited": count_items(request.user_id, "history")
     })
 
 
 @with_user_id
 def delete_history(request: UserRequest):
     models.History.objects.filter(user_id=request.user_id).delete()
+    models.TrailHistory.objects.filter(user_id=request.user_id).delete()
 
     return JsonResponse({
         "status": "ok"
@@ -274,17 +314,66 @@ def favorite(request: UserRequest):
 
 
 @with_user_id
+def favorite_trail(request: UserRequest):
+    trail_id = request.data["id"]
+
+    # If value is given, update favorite status
+    if "value" in request.data:
+        if request.data["value"]:
+            models.TrailFavorite.objects.get_or_create(
+                user_id=request.user_id,
+                trail_id=trail_id,
+                defaults={
+                    "created": datetime.utcnow().replace(tzinfo=pytz.UTC)
+                }
+            )
+        else:
+            models.TrailFavorite.objects.filter(
+                user_id=request.user_id,
+                trail_id=trail_id
+            ).delete()
+
+        return JsonResponse({
+            "status": "ok",
+        })
+    else:
+        return JsonResponse({
+            "status": "ok",
+            "value": models.TrailFavorite.objects.filter(
+                user_id=request.user_id,
+                trail_id=trail_id
+            ).count() > 0
+        })
+
+
+@with_user_id
 def favorites(request: UserRequest):
     return JsonResponse({
         "status": "ok",
-        "favorites": {
-            "museums": models.Museum.objects.filter(favorite__user_id=request.user_id).count(),
-            "wineries": models.Winery.objects.filter(favorite__user_id=request.user_id).count(),
-            "zoos": models.Zoo.objects.filter(favorite__user_id=request.user_id).count(),
-            "off_road": models.OffRoad.objects.filter(favorite__user_id=request.user_id).count()
-        }
+        "favorites": count_items(request.user_id, "favorite")
     })
 
+
+@with_user_id
+def favorites_trails(request: UserRequest):
+    return JsonResponse({
+        "status": "ok",
+        "trails": list(map(
+            lambda x: x.to_short_json,
+            models.Trail.objects.filter(trailfavorite__user_id=request.user_id).order_by("-trailfavorite__created")
+        ))
+    })
+
+
+@with_user_id
+def history_trails(request: UserRequest):
+    return JsonResponse({
+        "status": "ok",
+        "trails": list(map(
+            lambda x: x.to_short_json,
+            models.Trail.objects.filter(trailhistory__user_id=request.user_id).order_by("-trailhistory__created")
+        ))
+    })
 
 @with_user_id
 def history_list(request: UserRequest, model):

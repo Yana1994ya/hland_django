@@ -3,13 +3,15 @@ from typing import NoReturn, Optional
 from uuid import UUID
 
 import boto3
+from PIL import Image
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
 
 from attractions2 import forms, models
 from attractions2.base_views import EditView
@@ -147,6 +149,7 @@ class EditRockClimbing(EditView):
         return "attractions/edit_rock_climbing.html"
 
 
+@staff_member_required
 def edit_trail(request, trail_id: Optional[UUID] = None):
     if trail_id is None:
         trail = models.Trail()
@@ -248,4 +251,70 @@ def edit_trail(request, trail_id: Optional[UUID] = None):
     )
 
 
+@staff_member_required
+@csrf_exempt
+def trail_upload(request, trail_id: UUID):
+    trail = models.Trail.objects.get(id=trail_id)
+
+    if request.method != "POST":
+        return HttpResponse(status=405, body="Only post requests are allowed")
+    else:
+        form = forms.UserUploadImageForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            image = models.ImageAsset.upload_file(
+                form.cleaned_data["image"],
+                old_asset=None
+            )
+
+            image.save()
+
+            trail.additional_images.add(image)
+
+            image_data = image.to_json
+            image_data["id"] = image.id
+
+            return JsonResponse({
+                "status": "ok",
+                "image": image_data
+            })
+        else:
+            return JsonResponse({
+                "status": "error",
+                "message": str(form.errors)
+            })
+
+
+@staff_member_required
+@csrf_exempt
+def attraction_upload(request, attraction_id: int):
+    attraction = models.Attraction.objects.get(id=attraction_id)
+
+    if request.method != "POST":
+        return HttpResponse(status=405, body="Only post requests are allowed")
+    else:
+        form = forms.UserUploadImageForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            image = models.ImageAsset.upload_file(
+                form.cleaned_data["image"],
+                old_asset=None
+            )
+
+            image.save()
+
+            attraction.additional_images.add(image)
+
+            image_data = image.to_json
+            image_data["id"] = image.id
+
+            return JsonResponse({
+                "status": "ok",
+                "image": image_data
+            })
+        else:
+            return JsonResponse({
+                "status": "error",
+                "message": str(form.errors)
+            })
 

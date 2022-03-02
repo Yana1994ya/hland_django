@@ -73,7 +73,7 @@
                     </div>
                 </div>
                 <div class="col-6">
-                    <div class="row g-3">
+                    <div class="row g-3" id="additional_images">
                         {% if instance.id %}
                             {% for additional_image in instance.additional_images.all %}
                                 <div class="col-6">
@@ -137,5 +137,65 @@
 
 
     </form>
+    <template id="additional_image">
+        <div class="col-6">
+            <div class="row">
+                <img
+                        src=""
+                        width="300"
+                        alt="{{ attraction.name }}"
+                />
+            </div>
+            <div class="form-check">
+                <input
+                        type="checkbox"
+                        class="form-check-input"
+                        name="delete_additional"
+                        value="image_id"
+                        id="id_delete_additional_image_id"
+                />
+                <label
+                        class="form-check-label"
+                        for="id_delete_additional_image_id"
+                >
+                    Delete
+                </label>
+            </div>
+        </div>
+    </template>
+    <script>
+        if (/\/[a-z_]+\/[0-9]+$/.test(window.location.pathname)) {
+            const attraction_id = /\/[a-z_]+\/([0-9]+)$/.exec(window.location.pathname)[1];
+            const upload_path = "/attractions/" + attraction_id + "/upload";
+            const upload_input = document.getElementById("id_additional_image");
 
+            upload_input.addEventListener("change", e => {
+                const image = upload_input.files[0];
+
+                if (image) {
+                    const formData = new FormData();
+                    formData.append("image", image);
+
+                    fetch(upload_path, {
+                        method: "POST",
+                        body: formData
+                    }).then(result => result.json())
+                        .then(data => {
+                            if (data.status === "ok") {
+                                const template = document.getElementById("additional_image");
+                                const clone = template.content.cloneNode(true);
+
+                                clone.querySelector("img").src = data.image.url;
+                                clone.querySelector("input").value = data.image.id;
+                                clone.querySelector("input").id = "id_delete_additional_" + data.image.id;
+                                clone.querySelector("label").for = "id_delete_additional_" + data.image.id;
+
+                                document.getElementById("additional_images").appendChild(clone);
+                                upload_input.value = null;
+                            }
+                        });
+                }
+            })
+        }
+    </script>
 {% endblock %}

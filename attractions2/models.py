@@ -210,6 +210,18 @@ class RockClimbing(Attraction):
 
         return result
 
+    @classmethod
+    def explore_filter(cls, qset, request):
+        qset = super().explore_filter(qset, request)
+
+        if "attraction_type_id" in request.GET:
+            qset = qset.filter(attraction_type_id__in=list(map(
+                int,
+                request.GET.getlist("attraction_type_id"),
+            )))
+
+        return qset
+
 
 class TrailDifficulty(models.TextChoices):
     EASY = "E", _("Easy")
@@ -385,6 +397,22 @@ class History(models.Model):
         unique_together = [('user', 'attraction')]
 
 
+class TrailHistory(models.Model):
+    user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
+    trail = models.ForeignKey(Trail, on_delete=models.CASCADE)
+    # When the user first visited an attraction
+    created = models.DateTimeField()
+    # When the user last visited an attraction
+    last_visited = models.DateTimeField()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', '-last_visited']),
+        ]
+
+        unique_together = [('user', 'trail')]
+
+
 class Favorite(models.Model):
     user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
     attraction = models.ForeignKey(Attraction, on_delete=models.CASCADE)
@@ -396,6 +424,19 @@ class Favorite(models.Model):
         ]
 
         unique_together = [('user', 'attraction')]
+
+
+class TrailFavorite(models.Model):
+    user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
+    trail = models.ForeignKey(Trail, on_delete=models.CASCADE)
+    created = models.DateTimeField()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', '-created']),
+        ]
+
+        unique_together = [('user', 'trail')]
 
 
 class UserImage(models.Model):

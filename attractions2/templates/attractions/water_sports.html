@@ -6,7 +6,7 @@
         <div class="row pb-3">
             {% for water_sports in page.object_list %}
                 <div class="row">
-                    <a href="{% url "edit_water_sports" water_sports=water_sports.id %}">{{ water_sports.name }}</a>
+                    <a href="{% url "edit_water_sports" water_sports_id=water_sports.id %}">{{ water_sports.name }}</a>
                 </div>
             {% endfor %}
         </div>
