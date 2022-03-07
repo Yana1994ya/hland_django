@@ -48,3 +48,9 @@ class RockClimbingTypeAdmin(admin.ModelAdmin):
     pass
 
 admin.site.register(models.RockClimbingType, RockClimbingTypeAdmin)
+
+
+class TrailAdmin(admin.ModelAdmin):
+    list_display = ["name", "elv_gain", "length", "difficulty"]
+
+admin.site.register(models.Trail, TrailAdmin)
