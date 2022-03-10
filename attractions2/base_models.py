@@ -30,12 +30,17 @@ class ImageAsset(models.Model):
 
     @property
     def to_json(self) -> dict:
-        return {
+        data = {
             "url": self.url,
             "width": self.width,
             "height": self.height,
             "size": self.size
         }
+
+        if self.parent is not None:
+            data["parent"] = self.parent.to_json
+
+        return data
 
     def landscape_thumb(self, width: int) -> 'ImageAsset':
         if width > self.width:

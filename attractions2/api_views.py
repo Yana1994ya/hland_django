@@ -5,7 +5,7 @@ import tempfile
 import time
 import uuid
 from datetime import datetime
-from typing import Optional, Type, List, Dict
+from typing import Optional, Type, List, Dict, Any
 
 import boto3
 import django.http.request
@@ -149,15 +149,18 @@ def login(request):
 
     return JsonResponse({
         "status": "ok",
-        "token": jwt.encode(
-            {
-                "id": str(user.id),
-                "exp": int(time.time()) + 60 * 60 * 24 * 7,
-                "aud": settings.AUDIENCE
-            },
-            settings.SECRET_KEY,
-            algorithm="HS256"
-        )
+        "user": {
+            "token": jwt.encode(
+                {
+                    "id": str(user.id),
+                    "exp": int(time.time()) + 60 * 60 * 24 * 7,
+                    "aud": settings.AUDIENCE
+                },
+                settings.SECRET_KEY,
+                algorithm="HS256"
+            ),
+            "id": str(user_id)
+        }
     })
 
 
@@ -465,8 +468,12 @@ def get_trail(request, trail_id: str):
     trail = get_object_or_404(models.Trail, id=trail_id)
 
     additional_images = []
-    for image in trail.additional_images.all():
-        additional_images.append(image.landscape_thumb(900).to_json)
+    # For performance, read the correct thumbnail for all images at the same time
+    for image in models.ImageAsset.objects.filter(
+        request_width=900,
+        parent__trail_additional_image=trail,
+    ).select_related("parent").order_by("id"):
+        additional_images.append(image.to_json)
 
     data = trail.to_short_json
     data.update({
@@ -488,7 +495,7 @@ def get_trail(request, trail_id: str):
     })
 
 
-def _trails_query_set(request) -> Optional[datetime]:
+def _trails_query_set(request) -> Any:
     query_set = models.Trail.objects.all()
 
     if "length_start" in request.GET:
@@ -693,6 +700,19 @@ def upload_image(request):
 
     if form.is_valid():
         image = form.cleaned_data["image"]
+        trail_id = form.cleaned_data["trail_id"]
+        trail = None
+
+        if trail_id is not None:
+            try:
+                trail = models.Trail.objects.get(owner_id=user_id, id=trail_id)
+            except models.Trail.DoesNotExist:
+                return JsonResponse({
+                    "status": "error",
+                    "code": "MissingTrail",
+                    "message": f"Trail with id: {trail_id} wasn't found or doesn't belong to user"
+                })
+
 
         rotated = rotate_image(image)
         if rotated:
@@ -715,14 +735,24 @@ def upload_image(request):
 
         user_image.save()
 
-        return JsonResponse({
-            "status": "ok",
-            "image_id": user_image.id
-        })
+        # Generate thumbnail to improve future performance
+        image_asset.landscape_thumb(900)
+
+        if trail is None:
+            return JsonResponse({
+                "status": "ok",
+                "image_id": user_image.id
+            })
+        else:
+            trail.additional_images.add(image_asset)
+
+            return JsonResponse({
+                "status": "ok"
+            })
     else:
         return JsonResponse({
             "status": "error",
-            "code": "NotFound",
+            "code": "BadRequest",
             "message": "Failed to validate image"
         })
 

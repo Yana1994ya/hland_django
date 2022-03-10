@@ -148,6 +148,7 @@ class RockClimbingForm(ManagedAttractionForm):
 
 class UserUploadImageForm(forms.Form):
     image = forms.ImageField(required=True)
+    trail_id = forms.UUIDField(required=False)
 
 
 class MultipleTagField(forms.ModelMultipleChoiceField):

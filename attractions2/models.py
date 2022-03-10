@@ -338,7 +338,8 @@ class Trail(models.Model):
             "type": self.api_single_key(),
             "difficulty": self.difficulty,
             "length": self.length,
-            "elevation_gain": self.elv_gain
+            "elevation_gain": self.elv_gain,
+            "owner_id": str(self.owner_id)
         }
 
         if self.main_image is None:
