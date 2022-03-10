@@ -23,7 +23,7 @@ class ImageAsset(models.Model):
     parent = models.ForeignKey('ImageAsset', on_delete=models.CASCADE, null=True)
 
     class Meta:
-        unique_together = [("bucket", "key")]
+        unique_together = [("bucket", "key"), ("parent_id", "request_width", "request_height")]
 
     def __str__(self):
         return f"s3://{self.bucket}/{self.key}"
