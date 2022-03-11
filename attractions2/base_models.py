@@ -23,7 +23,10 @@ class ImageAsset(models.Model):
     parent = models.ForeignKey('ImageAsset', on_delete=models.CASCADE, null=True)
 
     class Meta:
-        unique_together = [("bucket", "key"), ("parent_id", "request_width", "request_height")]
+        unique_together = [
+            ("bucket", "key"),
+            ("parent_id", "request_width", "request_height")
+        ]
 
     def __str__(self):
         return f"s3://{self.bucket}/{self.key}"
@@ -226,6 +229,10 @@ class Attraction(models.Model):
         on_delete=models.SET_NULL
     )
 
+    # Denormalized fields
+    avg_rating = models.DecimalField(max_digits=2, decimal_places=1)
+    rating_count = models.PositiveIntegerField()
+
     def save(self, *args, **kwargs):
         if self.content_type is None:
             self.content_type = ContentType.objects.get_for_model(self.__class__)
@@ -283,7 +290,10 @@ class Attraction(models.Model):
             "address": self.address,
             "type": self.api_single_key(),
             "city": self.city,
-            "telephone": self.telephone
+            "telephone": self.telephone,
+            # Transfer the rating as a string to avoid rounding errors
+            "avg_rating": str(self.avg_rating),
+            "rating_count": self.rating_count
         }
 
         if self.main_image is None:

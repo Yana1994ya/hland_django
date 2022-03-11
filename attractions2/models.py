@@ -328,6 +328,9 @@ class Trail(models.Model):
 
     date_modified = models.DateTimeField(auto_now=True)
 
+    avg_rating = models.DecimalField(max_digits=2, decimal_places=1)
+    rating_count = models.PositiveIntegerField()
+
     @property
     def to_short_json(self):
         json_result = {
@@ -339,7 +342,9 @@ class Trail(models.Model):
             "difficulty": self.difficulty,
             "length": self.length,
             "elevation_gain": self.elv_gain,
-            "owner_id": str(self.owner_id)
+            "owner_id": str(self.owner_id),
+            "avg_rating": str(self.avg_rating),
+            "rating_count": self.rating_count
         }
 
         if self.main_image is None:
