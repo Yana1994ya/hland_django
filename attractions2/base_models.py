@@ -192,6 +192,38 @@ class Region(models.Model):
         return self.name
 
 
+class GoogleUser(models.Model):
+    id = models.UUIDField(primary_key=True)
+    # Identifier in google
+    sub = models.CharField(max_length=250, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    email_verified = models.BooleanField(blank=True, null=True)
+    name = models.CharField(max_length=250, blank=True, null=True)
+    given_name = models.CharField(max_length=250, blank=True, null=True)
+    family_name = models.CharField(max_length=250, blank=True, null=True)
+    picture = models.CharField(max_length=250, blank=True, null=True)
+    date_modified = models.DateTimeField(auto_now=True)
+    # Keep user anonymous by *not* updating name/given_name/email when logging in.
+    anonymized = models.BooleanField()
+
+    banned_until = models.DateTimeField(blank=True, null=True)
+
+    @property
+    def to_json(self):
+        data = {
+            "id": self.id,
+            "name": self.name
+        }
+
+        if self.picture:
+            data["picture"] = self.picture
+
+        return data
+
+    def __str__(self):
+        return self.name
+
+
 class Attraction(models.Model):
     name = models.CharField(max_length=250)
 
@@ -354,3 +386,33 @@ class AttractionFilter(models.Model):
     class Meta:
         abstract = True
         ordering = ["name"]
+
+
+class AttractionComment(models.Model):
+    attraction = models.ForeignKey(Attraction, on_delete=models.CASCADE)
+    user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
+
+    text = models.TextField(null=True, blank=True)
+    rating = models.PositiveSmallIntegerField()
+
+    images = models.ManyToManyField(
+        ImageAsset,
+        related_name="attraction_comment_image"
+    )
+
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['attraction', '-created']),
+        ]
+
+    @property
+    def to_json(self):
+        return {
+            "user": self.user.to_json,
+            "rating": self.rating,
+            "text": self.text,
+            "created": self.created.isoformat("T")
+        }

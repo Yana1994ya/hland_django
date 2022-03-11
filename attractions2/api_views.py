@@ -14,6 +14,8 @@ import pytz
 from PIL import ExifTags, Image
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.core.paginator import Paginator
+from django.db.models import Avg, Count
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import cache_control, cache_page, never_cache
@@ -737,6 +739,7 @@ def upload_image(request):
 
         # Generate thumbnail to improve future performance
         image_asset.landscape_thumb(900)
+        image_asset.landscape_thumb(64)
 
         if trail is None:
             return JsonResponse({
@@ -774,43 +777,58 @@ def resolve_object_type(object_type) -> Optional[ContentType]:
 
 @with_user_id
 def add_comment(request: UserRequest):
-    object_type = request.data["object_type"]
+    comment_text = None
+    if "text" in request.data:
+        comment_text = request.data["text"]
 
-    ct = resolve_object_type(object_type)
-    if ct is None:
-        return JsonResponse({
-            "status": "error",
-            "code": "NotFound",
-            "message": f"Object of type: {object_type} is not found"
-        })
-
-    comment_text = request.data["comment_text"]
-
-    if not comment_text:
-        return JsonResponse({
-            "status": "error",
-            "code": "InvalidData",
-            "message": "Comment text is not found"
-        })
-
-    content_id = request.data["content_id"]
+    attraction_id = request.data["attraction_id"]
 
     # Make sure the data we're referring a comment to actually exists
-    if ct.model_class().objects.filter(id=content_id).count() == 0:
+    if models.Attraction.objects.filter(id=attraction_id).count() == 0:
         return JsonResponse({
             "status": "error",
             "code": "InvalidData",
-            "message": "Content for comment not found"
+            "message": "Attraction for comment not found"
         })
 
-    comment = models.UserComment(
+
+    rating = int(request.data["rating"])
+
+    if rating < 1:
+        return JsonResponse({
+            "status": "error",
+            "code": "InvalidData",
+            "message": "Rating can't be less than 1"
+        })
+    elif rating > 5:
+        return JsonResponse({
+            "status": "error",
+            "code": "InvalidData",
+            "message": "Rating can't be more than 1"
+        })
+
+    comment = base_models.AttractionComment(
+        attraction_id=attraction_id,
         user_id=request.user_id,
         text=comment_text,
-        content_type=ct,
-        content_id=str(content_id)
+        rating=rating
     )
-
     comment.save()
+
+    if "image_ids" in request.data:
+        image_ids = request.data["image_ids"]
+        for image in models.ImageAsset.objects.filter(id__in=image_ids, userimage__user_id=request.user_id):
+            comment.images.add(image)
+
+    # Recalculate the denormalized fields
+    attraction = models.Attraction.objects.annotate(
+        calc_avg_rating=Avg("attractioncomment__rating"),
+        calc_count=Count("attractioncomment__id")
+    ).get(id=attraction_id)
+
+    attraction.avg_rating = attraction.calc_avg_rating
+    attraction.rating_count = attraction.calc_count
+    attraction.save()
 
     return JsonResponse({
         "status": "ok",
@@ -818,22 +836,55 @@ def add_comment(request: UserRequest):
     })
 
 
-def get_comments(request, object_type, content_id):
-    ct = resolve_object_type(object_type)
-    if ct is None:
-        return JsonResponse({
-            "status": "error",
-            "code": "NotFound",
-            "message": f"Object of type: {object_type} is not found"
-        })
+def get_attraction_comments(request, attraction_id: int, page_number: int):
+
+
+    paginator = Paginator(
+        base_models.AttractionComment.objects.filter(
+            attraction_id=attraction_id
+        ).order_by("-created").select_related("user").prefetch_related("images"),
+        30
+    )
+
+    page = paginator.page(page_number)
+    # Load the thumbs in an efficient manner so many comments don't bring the application to a crawl
+    image_ids = set()
+
+    for comment in page.object_list:
+        for image in comment.images.all():
+            image_ids.add(image.id)
+
+    thumbs = {}
+    for thumb in models.ImageAsset.objects.filter(parent__id__in=image_ids, request_width=64, request_height=64):
+        thumbs[thumb.parent_id] = thumb
+
+    result = []
+    for comment in page.object_list:
+        comment_json = {
+            "user": comment.user.to_json,
+            "rating": comment.rating,
+            "text": comment.text,
+            "created": comment.created.strftime("%Y-%m-%dT%H-%M-%S"),
+            "images": []
+        }
+
+        for image in comment.images.all():
+            if image.id not in thumbs:
+                thumb = image.landscape_thumb(64)
+            else:
+                thumb = thumbs[image.id]
+
+            thumb.parent = image
+
+            comment_json["images"].append(thumb.to_json)
+
+        result.append(comment_json)
 
     return JsonResponse({
         "status": "ok",
-        "comments": list(map(
-            lambda x: x.to_json,
-            models.UserComment.objects.filter(
-                content_type=ct,
-                content_id=content_id
-            )
-        ))
+        "comments": {
+            "pages": paginator.num_pages,
+            "page": page_number,
+            "items": result
+        }
     })

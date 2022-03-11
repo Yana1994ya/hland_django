@@ -4,7 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from attractions2.base_models import Attraction, AttractionFilter, ImageAsset
+from attractions2.base_models import Attraction, AttractionFilter, ImageAsset, GoogleUser
 
 
 class MuseumDomain(AttractionFilter):
@@ -355,36 +355,7 @@ class Trail(models.Model):
         return json_result
 
 
-class GoogleUser(models.Model):
-    id = models.UUIDField(primary_key=True)
-    # Identifier in google
-    sub = models.CharField(max_length=250, blank=True, null=True)
-    email = models.EmailField(blank=True, null=True)
-    email_verified = models.BooleanField(blank=True, null=True)
-    name = models.CharField(max_length=250, blank=True, null=True)
-    given_name = models.CharField(max_length=250, blank=True, null=True)
-    family_name = models.CharField(max_length=250, blank=True, null=True)
-    picture = models.CharField(max_length=250, blank=True, null=True)
-    date_modified = models.DateTimeField(auto_now=True)
-    # Keep user anonymous by *not* updating name/given_name/email when logging in.
-    anonymized = models.BooleanField()
 
-    banned_until = models.DateTimeField(blank=True, null=True)
-
-    @property
-    def to_json(self):
-        data = {
-            "id": self.id,
-            "name": self.name
-        }
-
-        if self.picture:
-            data["picture"] = self.picture
-
-        return data
-
-    def __str__(self):
-        return self.name
 
 
 class History(models.Model):
@@ -449,29 +420,3 @@ class UserImage(models.Model):
     user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
     image = models.ForeignKey(ImageAsset, on_delete=models.CASCADE)
 
-
-class UserComment(models.Model):
-    user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
-    content_type = models.ForeignKey(
-        ContentType,
-        editable=False,
-        null=True,
-        on_delete=models.SET_NULL
-    )
-
-    # Must be char field because it can either be UUID for trail or int for the rest
-    content_id = models.CharField(max_length=50)
-    text = models.TextField()
-
-    images = models.ManyToManyField(
-        ImageAsset,
-        related_name="comment_images"
-    )
-
-    @property
-    def to_json(self):
-        return {
-            "id": self.id,
-            "text": self.text,
-            "user": self.user.to_json
-        }
