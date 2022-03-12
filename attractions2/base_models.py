@@ -262,8 +262,8 @@ class Attraction(models.Model):
     )
 
     # Denormalized fields
-    avg_rating = models.DecimalField(max_digits=2, decimal_places=1)
-    rating_count = models.PositiveIntegerField()
+    avg_rating = models.DecimalField(max_digits=2, decimal_places=1, default=0)
+    rating_count = models.PositiveIntegerField(default=0)
 
     def save(self, *args, **kwargs):
         if self.content_type is None:

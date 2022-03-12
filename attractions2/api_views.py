@@ -861,10 +861,11 @@ def get_attraction_comments(request, attraction_id: int, page_number: int):
     result = []
     for comment in page.object_list:
         comment_json = {
+            "id": comment.id,
             "user": comment.user.to_json,
             "rating": comment.rating,
             "text": comment.text,
-            "created": comment.created.strftime("%Y-%m-%dT%H-%M-%S"),
+            "created": comment.created.strftime("%Y-%m-%d %H:%M:%S"),
             "images": []
         }
 

@@ -328,8 +328,8 @@ class Trail(models.Model):
 
     date_modified = models.DateTimeField(auto_now=True)
 
-    avg_rating = models.DecimalField(max_digits=2, decimal_places=1)
-    rating_count = models.PositiveIntegerField()
+    avg_rating = models.DecimalField(max_digits=2, decimal_places=1, default=0)
+    rating_count = models.PositiveIntegerField(default=0)
 
     @property
     def to_short_json(self):
