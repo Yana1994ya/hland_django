@@ -380,6 +380,7 @@ def history_trails(request: UserRequest):
         ))
     })
 
+
 @with_user_id
 def history_list(request: UserRequest, model):
     result = []
@@ -472,8 +473,8 @@ def get_trail(request, trail_id: str):
     additional_images = []
     # For performance, read the correct thumbnail for all images at the same time
     for image in models.ImageAsset.objects.filter(
-        request_width=900,
-        parent__trail_additional_image=trail,
+            request_width=900,
+            parent__trail_additional_image=trail,
     ).select_related("parent").order_by("id"):
         additional_images.append(image.to_json)
 
@@ -595,7 +596,10 @@ def upload_start(request):
     image_ids_str = request.POST.get("images", "")
     if image_ids_str:
         image_ids = list(map(int, image_ids_str.split(",")))
-        images = list(models.UserImage.objects.filter(user_id=user_id, id__in=image_ids))
+        images = list(models.ImageAsset.objects.filter(
+            id__in=image_ids,
+            userimage__user_id=user_id,
+        ))
 
     trail_id = uuid.uuid4()
 
@@ -623,13 +627,13 @@ def upload_start(request):
     )
 
     if images:
-        trail.main_image = images[0].image
+        trail.main_image = images[0]
 
     trail.save()
 
     # Add any additional image to the trail
     for additional_image in images[1:]:
-        trail.additional_images.add(additional_image.image)
+        trail.additional_images.add(additional_image)
 
     def get_tags(field_name: str, model: Type[models.AttractionFilter]) -> List[models.AttractionFilter]:
         str_ids = request.POST.get(field_name, "").strip()  # type: str
@@ -715,7 +719,6 @@ def upload_image(request):
                     "message": f"Trail with id: {trail_id} wasn't found or doesn't belong to user"
                 })
 
-
         rotated = rotate_image(image)
         if rotated:
             image.file = tempfile.TemporaryFile()
@@ -738,13 +741,18 @@ def upload_image(request):
         user_image.save()
 
         # Generate thumbnail to improve future performance
-        image_asset.landscape_thumb(900)
-        image_asset.landscape_thumb(64)
+        thumbs = [
+            image_asset.landscape_thumb(900).to_json,
+            image_asset.landscape_thumb(64).to_json
+        ]
 
         if trail is None:
             return JsonResponse({
                 "status": "ok",
-                "image_id": user_image.id
+                "image": {
+                    "image_id": image_asset.id,
+                    "thumbs": thumbs
+                }
             })
         else:
             trail.additional_images.add(image_asset)
@@ -791,7 +799,6 @@ def add_comment(request: UserRequest):
             "message": "Attraction for comment not found"
         })
 
-
     rating = int(request.data["rating"])
 
     if rating < 1:
@@ -837,8 +844,6 @@ def add_comment(request: UserRequest):
 
 
 def get_attraction_comments(request, attraction_id: int, page_number: int):
-
-
     paginator = Paginator(
         base_models.AttractionComment.objects.filter(
             attraction_id=attraction_id
