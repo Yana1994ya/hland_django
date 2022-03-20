@@ -1,15 +1,15 @@
 import io
-from os import path
 import tempfile
-from typing import List, Optional
 import uuid
+from os import path
+from typing import List, Optional
 
-from PIL import Image
 import boto3
-from django.conf import settings
 import requests
-from django.db import models
+from PIL import Image
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.db import models
 
 
 class ImageAsset(models.Model):
@@ -416,3 +416,7 @@ class AttractionComment(models.Model):
             "text": self.text,
             "created": self.created.isoformat("T")
         }
+
+    @property
+    def user_name(self) -> str:
+        return self.user.name

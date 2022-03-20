@@ -1,7 +1,7 @@
 # Register your models here.
 from django.contrib import admin
 
-from attractions2 import models
+from attractions2 import models, base_models
 
 
 class AttractionAdmin(admin.ModelAdmin):
@@ -47,10 +47,20 @@ admin.site.register(models.WaterSportsAttractionType, WaterSportAttractionTypeAd
 class RockClimbingTypeAdmin(admin.ModelAdmin):
     pass
 
+
 admin.site.register(models.RockClimbingType, RockClimbingTypeAdmin)
 
 
 class TrailAdmin(admin.ModelAdmin):
     list_display = ["name", "elv_gain", "length", "difficulty"]
 
+
 admin.site.register(models.Trail, TrailAdmin)
+
+
+class CommentsAdmin(admin.ModelAdmin):
+    list_display = ["user_name", "text"]
+    list_select_related = ["user"]
+
+
+admin.site.register(base_models.AttractionComment, CommentsAdmin)

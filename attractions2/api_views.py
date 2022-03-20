@@ -843,11 +843,72 @@ def add_comment(request: UserRequest):
     })
 
 
-def get_attraction_comments(request, attraction_id: int, page_number: int):
+@with_user_id
+def add_trail_comment(request: UserRequest):
+    comment_text = None
+    if "text" in request.data:
+        comment_text = request.data["text"]
+
+    trail_id = request.data["trail_id"]
+
+    # Make sure the data we're referring a comment to actually exists
+    if models.Trail.objects.filter(id=trail_id).count() == 0:
+        return JsonResponse({
+            "status": "error",
+            "code": "InvalidData",
+            "message": "Trail for comment not found"
+        })
+
+    rating = int(request.data["rating"])
+
+    if rating < 1:
+        return JsonResponse({
+            "status": "error",
+            "code": "InvalidData",
+            "message": "Rating can't be less than 1"
+        })
+    elif rating > 5:
+        return JsonResponse({
+            "status": "error",
+            "code": "InvalidData",
+            "message": "Rating can't be more than 1"
+        })
+
+    comment = models.TrailComment(
+        trail_id=trail_id,
+        user_id=request.user_id,
+        text=comment_text,
+        rating=rating
+    )
+
+    comment.save()
+
+    if "image_ids" in request.data:
+        image_ids = request.data["image_ids"]
+        for image in models.ImageAsset.objects.filter(id__in=image_ids, userimage__user_id=request.user_id):
+            comment.images.add(image)
+
+    # Recalculate the denormalized fields
+    trail = models.Trail.objects.annotate(
+        calc_avg_rating=Avg("trailcomment__rating"),
+        calc_count=Count("trailcomment__id")
+    ).get(id=trail_id)
+
+    trail.avg_rating = trail.calc_avg_rating
+    trail.rating_count = trail.calc_count
+    trail.save()
+
+    return JsonResponse({
+        "status": "ok",
+        "comment_id": comment.id
+    })
+
+
+def get_comments(qset, page_number: int) -> JsonResponse:
     paginator = Paginator(
-        base_models.AttractionComment.objects.filter(
-            attraction_id=attraction_id
-        ).order_by("-created").select_related("user").prefetch_related("images"),
+        qset.order_by("-created")
+            .select_related("user")
+            .prefetch_related("images"),
         30
     )
 
@@ -894,3 +955,21 @@ def get_attraction_comments(request, attraction_id: int, page_number: int):
             "items": result
         }
     })
+
+
+def get_attraction_comments(_request, attraction_id: int, page_number: int):
+    return get_comments(
+        base_models.AttractionComment.objects.filter(
+            attraction_id=attraction_id
+        ),
+        page_number
+    )
+
+
+def get_trail_comments(_request, trail_id: str, page_number: int):
+    return get_comments(
+        models.TrailComment.objects.filter(
+            trail_id=trail_id
+        ),
+        page_number
+    )

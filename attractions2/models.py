@@ -1,6 +1,5 @@
 from typing import List
 
-from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -420,3 +419,36 @@ class UserImage(models.Model):
     user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
     image = models.ForeignKey(ImageAsset, on_delete=models.CASCADE)
 
+
+class TrailComment(models.Model):
+    trail = models.ForeignKey(Trail, on_delete=models.CASCADE)
+    user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
+
+    text = models.TextField(null=True, blank=True)
+    rating = models.PositiveSmallIntegerField()
+
+    images = models.ManyToManyField(
+        ImageAsset,
+        related_name="trail_comment_image"
+    )
+
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['trail', '-created']),
+        ]
+
+    @property
+    def to_json(self):
+        return {
+            "user": self.user.to_json,
+            "rating": self.rating,
+            "text": self.text,
+            "created": self.created.isoformat("T")
+        }
+
+    @property
+    def user_name(self) -> str:
+        return self.user.name
