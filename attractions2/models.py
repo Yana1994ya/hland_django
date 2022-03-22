@@ -1,9 +1,10 @@
-from typing import List
+import re
+from typing import List, Type
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from attractions2.base_models import Attraction, AttractionFilter, ImageAsset, GoogleUser
+from attractions2.base_models import Attraction, AttractionFilter, ImageAsset, GoogleUser, ManagedAttraction
 
 
 class MuseumDomain(AttractionFilter):
@@ -11,12 +12,8 @@ class MuseumDomain(AttractionFilter):
     def api_multiple_key(cls) -> str:
         return "museum_domains"
 
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "museum_domain"
 
-
-class Museum(Attraction):
+class Museum(ManagedAttraction):
     domain = models.ForeignKey(MuseumDomain, on_delete=models.CASCADE)
 
     @property
@@ -55,7 +52,7 @@ class Museum(Attraction):
         return qset
 
 
-class Winery(Attraction):
+class Winery(ManagedAttraction):
     @classmethod
     def api_multiple_key(cls) -> str:
         return "wineries"
@@ -65,7 +62,7 @@ class Winery(Attraction):
         return "winery"
 
 
-class Zoo(Attraction):
+class Zoo(ManagedAttraction):
     @classmethod
     def api_single_key(cls) -> str:
         return "zoo"
@@ -88,7 +85,7 @@ class OffRoadTripType(AttractionFilter):
         verbose_name_plural = "Off-Road Trip Types"
 
 
-class OffRoad(Attraction):
+class OffRoad(ManagedAttraction):
     trip_type = models.ForeignKey(OffRoadTripType, on_delete=models.CASCADE)
 
     @classmethod
@@ -136,7 +133,7 @@ class WaterSportsAttractionType(AttractionFilter):
         return "water_sports_attraction_types"
 
 
-class WaterSports(Attraction):
+class WaterSports(ManagedAttraction):
     attraction_type = models.ForeignKey(WaterSportsAttractionType, on_delete=models.CASCADE)
 
     @classmethod
@@ -184,7 +181,7 @@ class RockClimbingType(AttractionFilter):
         return "rock_climbing_types"
 
 
-class RockClimbing(Attraction):
+class RockClimbing(ManagedAttraction):
     attraction_type = models.ForeignKey(RockClimbingType, on_delete=models.CASCADE)
 
     @classmethod
@@ -354,9 +351,6 @@ class Trail(models.Model):
         return json_result
 
 
-
-
-
 class History(models.Model):
     user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
     attraction = models.ForeignKey(Attraction, on_delete=models.CASCADE)
@@ -452,3 +446,29 @@ class TrailComment(models.Model):
     @property
     def user_name(self) -> str:
         return self.user.name
+
+
+def get_attraction_classes():
+    for subclass in Attraction.__subclasses__() + ManagedAttraction.__subclasses__():
+        if not subclass == ManagedAttraction:
+            yield subclass
+
+
+def _generate_regex() -> str:
+    parts = []
+    for subclass in get_attraction_classes():
+        parts.append(re.escape(subclass.api_multiple_key()))
+
+    return "|".join(parts)
+
+
+class AttractionModelConverter:
+    regex = _generate_regex()
+
+    def to_python(self, value: str) -> Type[Attraction]:
+        for subclass in get_attraction_classes():
+            if value == subclass.api_multiple_key():
+                return subclass
+
+    def to_url(self, value: Type[Attraction]):
+        return value.api_multiple_key()

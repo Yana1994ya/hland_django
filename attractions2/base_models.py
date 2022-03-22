@@ -1,8 +1,9 @@
 import io
+import logging
 import tempfile
 import uuid
 from os import path
-from typing import List, Optional
+from typing import List, Optional, Set, Dict
 
 import boto3
 import requests
@@ -10,6 +11,9 @@ from PIL import Image
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
+from django.db.models import Q
+
+log = logging.getLogger(__name__)
 
 
 class ImageAsset(models.Model):
@@ -157,39 +161,65 @@ class ImageAsset(models.Model):
         else:
             return f"https://{self.bucket}.s3.amazonaws.com/{self.key}"
 
+    @classmethod
+    def resolve_thumbs(cls, image_ids: Set[int], thumb_size: int) -> Dict[int, "ImageAsset"]:
+        images = {}
 
-class Region(models.Model):
-    name = models.CharField(max_length=25)
+        if image_ids:
+            for image in cls.objects.filter(
+                    Q(
+                        parent__id__in=image_ids,
+                        request_width=thumb_size,
+                        request_height=thumb_size,
+                    ) | Q(
+                        id__in=image_ids,
+                        width__lte=thumb_size,
+                        height__lte=thumb_size
+                    )
+            ).select_related("parent"):
+                if image.parent_id is not None:
+                    images[image.parent.id] = image
+                else:
+                    images[image.id] = image
 
-    image = models.ForeignKey(
-        ImageAsset,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
-    )
+            missing = image_ids - images.keys()
 
+            log.info("%s attractions are missing thumbnails", len(missing))
+            if missing:
+                for image in cls.objects.filter(id__in=missing):
+                    images[image.id] = image.landscape_thumb(600)
+                    images[image.id].parent = image
+        return images
+
+
+class AttractionFilter(models.Model):
+    name = models.CharField(max_length=200)
     date_modified = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return type(self).__name__ + ": " + self.name
 
     @property
     def to_json(self):
-        res = self.to_short_json
-
-        if self.image is None:
-            res["image"] = None
-        else:
-            res["image"] = self.image.thumb_300().to_json
-
-        return res
-
-    @property
-    def to_short_json(self):
         return {
             "id": self.id,
             "name": self.name
         }
 
-    def __str__(self):
-        return self.name
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        raise NotImplementedError("api_multiple_key not implemented")
+
+    class Meta:
+        abstract = True
+        ordering = ["name"]
+
+
+class Region(AttractionFilter):
+
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        return "regions"
 
 
 class GoogleUser(models.Model):
@@ -227,9 +257,6 @@ class GoogleUser(models.Model):
 class Attraction(models.Model):
     name = models.CharField(max_length=250)
 
-    description = models.TextField(blank=True, null=True)
-    website = models.URLField(blank=True, null=True)
-
     main_image = models.ForeignKey(
         ImageAsset,
         on_delete=models.SET_NULL,
@@ -242,17 +269,10 @@ class Attraction(models.Model):
         related_name="attraction_additional_image"
     )
 
-    address = models.CharField(max_length=150)
-
     lat = models.FloatField()
     long = models.FloatField()
 
-    region = models.ForeignKey(Region, on_delete=models.CASCADE, null=True)
-
     date_modified = models.DateTimeField(auto_now=True)
-
-    telephone = models.CharField(max_length=10, blank=True, null=True)
-    city = models.CharField(max_length=50, blank=True, null=True)
 
     content_type = models.ForeignKey(
         ContentType,
@@ -272,7 +292,7 @@ class Attraction(models.Model):
 
     @classmethod
     def short_related(cls) -> List[str]:
-        return ["region"]
+        raise NotImplementedError("short_related not implemented")
 
     @classmethod
     def short_query(cls):
@@ -302,6 +322,37 @@ class Attraction(models.Model):
 
     @classmethod
     def explore_filter(cls, qset, request):
+        raise NotImplementedError("explore_filter not implemented")
+
+    @property
+    def to_short_json(self):
+        raise NotImplementedError("to_short_json not implemented")
+
+    @property
+    def to_json(self):
+        raise NotImplementedError("to_json not implemented")
+
+    def __str__(self):
+        return self.name
+
+
+class ManagedAttraction(Attraction):
+    description = models.TextField(blank=True, null=True)
+    website = models.URLField(blank=True, null=True)
+
+    address = models.CharField(max_length=150)
+
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, null=True)
+
+    telephone = models.CharField(max_length=10, blank=True, null=True)
+    city = models.CharField(max_length=50, blank=True, null=True)
+
+    @classmethod
+    def short_related(cls) -> List[str]:
+        return ["region"]
+
+    @classmethod
+    def explore_filter(cls, qset, request):
         # https://hollyland.iywebs.cloudns.ph/attractions/api/museums?region_id=4
         if "region_id" in request.GET:
             qset = qset.filter(region_id__in=list(map(
@@ -313,12 +364,12 @@ class Attraction(models.Model):
 
     @property
     def to_short_json(self):
-        json_result = {
+        return {
             "id": self.id,
             "name": self.name,
             "lat": self.lat,
             "long": self.long,
-            "region": self.region.to_short_json,
+            "region": self.region.to_json,
             "address": self.address,
             "type": self.api_single_key(),
             "city": self.city,
@@ -327,13 +378,6 @@ class Attraction(models.Model):
             "avg_rating": str(self.avg_rating),
             "rating_count": self.rating_count
         }
-
-        if self.main_image is None:
-            json_result["main_image"] = None
-        else:
-            json_result["main_image"] = self.main_image.thumb_600().to_json
-
-        return json_result
 
     @property
     def to_json(self):
@@ -344,48 +388,13 @@ class Attraction(models.Model):
             "website": self.website,
         })
 
-        if self.main_image is None:
-            json_result["main_image"] = None
-        else:
-            json_result["main_image"] = self.main_image.landscape_thumb(900).to_json
-
-        additional_images = []
-        for image in self.additional_images.all():
-            additional_images.append(image.landscape_thumb(900).to_json)
-
-        json_result["additional_images"] = additional_images
-
         return json_result
-
-    def __str__(self):
-        return self.name
-
-
-class AttractionFilter(models.Model):
-    name = models.CharField(max_length=200)
-    date_modified = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return type(self).__name__ + ": " + self.name
-
-    @property
-    def to_json(self):
-        return {
-            "id": self.id,
-            "name": self.name
-        }
-
-    @classmethod
-    def api_multiple_key(cls) -> str:
-        raise NotImplementedError("api_multiple_key not implemented")
-
-    @classmethod
-    def api_single_key(cls) -> str:
-        raise NotImplementedError("api_single_key not implemented")
 
     class Meta:
         abstract = True
-        ordering = ["name"]
+
+
+
 
 
 class AttractionComment(models.Model):

@@ -1,6 +1,7 @@
 import dataclasses
 import http.client
 import json
+import logging
 import tempfile
 import time
 import uuid
@@ -24,6 +25,8 @@ from django.views.decorators.http import condition
 
 from attractions2 import models, forms, base_models
 from attractions2.trail import analyze_trail, FileEmpty
+
+log = logging.getLogger(__name__)
 
 
 def _get_regions_last_modified(request):
@@ -59,19 +62,45 @@ def _get_explore_last_modified(request, model):
         return None
 
 
+def query_set_to_json(qset):
+    attractions = list(qset)
+
+    image_ids = set(map(
+        lambda x: x.main_image_id,
+        filter(
+            lambda x: x.main_image_id is not None,
+            attractions
+        )
+    ))
+
+    images = models.ImageAsset.resolve_thumbs(image_ids, 600)
+
+    items = []
+
+    for item in attractions:
+        document = item.to_short_json
+
+        if item.main_image_id is None:
+            document["main_image"] = None
+        else:
+            document["main_image"] = images[item.main_image_id].to_json
+
+        items.append(document)
+
+    return items
+
+
 # cache explore for 2 hours
 @cache_control(public=True, max_age=60 * 60 * 2)
 @condition(last_modified_func=_get_explore_last_modified)
 def get_explore(request, model):
-    items = []
-
-    for item in _get_explore_qset(request, model, True) \
-            .order_by("name"):
-        items.append(item.to_short_json)
-
     return JsonResponse({
         "status": "ok",
-        model.api_multiple_key(): items
+        model.api_multiple_key(): query_set_to_json(
+            _get_explore_qset(request, model, True)
+                .select_related(*model.short_related())
+                .order_by("name")
+        )
     })
 
 
@@ -87,9 +116,31 @@ def _get_single_last_modified(request, model, attraction_id: int):
 @condition(last_modified_func=_get_single_last_modified)
 def get_single(request, model, attraction_id: int):
     try:
+        single = model.objects.get(id=attraction_id)
+        document = single.to_json
+
+        image_ids = set()
+        if single.main_image_id is not None:
+            image_ids.add(single.main_image_id)
+
+        additional_images = list(single.additional_images.values_list('pk', flat=True))
+        image_ids.update(additional_images)
+
+        images = models.ImageAsset.resolve_thumbs(image_ids, 900)
+
+        if single.main_image_id is None:
+            document["main_image"] = None
+        else:
+            document["main_image"] = images[single.main_image_id].to_json
+
+        document["additional_images"] = list(map(
+            lambda image_id: images[image_id].to_json,
+            additional_images
+        ))
+
         return JsonResponse({
             "status": "ok",
-            model.api_single_key(): model.objects.get(id=attraction_id).to_json
+            model.api_single_key(): document
         })
     except model.DoesNotExist:
         resp = JsonResponse({
@@ -252,19 +303,18 @@ def count_items(user_id: uuid.UUID, key: str) -> Dict[str, int]:
         key + "__user_id": user_id
     }
 
-    trail_filter = {
-        "trail" + key + "__user_id": user_id
-    }
+    counts = models.Attraction.objects.filter(**attraction_filter) \
+        .values("content_type__model") \
+        .annotate(count=Count("id"))
 
-    return {
-        "museums": models.Museum.objects.filter(**attraction_filter).count(),
-        "wineries": models.Winery.objects.filter(**attraction_filter).count(),
-        "zoos": models.Zoo.objects.filter(**attraction_filter).count(),
-        "off_road": models.OffRoad.objects.filter(**attraction_filter).count(),
-        "trails": models.Trail.objects.filter(**trail_filter).count(),
-        "water_sports": models.WaterSports.objects.filter(**attraction_filter).count(),
-        "rock_climbing": models.RockClimbing.objects.filter(**attraction_filter).count(),
-    }
+    counts = dict(map(lambda x: (x["content_type__model"], x["count"]), counts))
+
+    results = {}
+
+    for model in models.get_attraction_classes():
+        results[model.api_multiple_key()] = counts.get(model._meta.model_name, 0)
+
+    return results
 
 
 @with_user_id
@@ -390,20 +440,19 @@ def history_list(request: UserRequest, model):
 
     return JsonResponse({
         "status": "ok",
-        model.api_multiple_key(): result
+        model.api_multiple_key(): query_set_to_json(
+            model.history(request.user_id)
+        )
     })
 
 
 @with_user_id
 def favorites_list(request: UserRequest, model):
-    result = []
-
-    for item in model.favorite(request.user_id):
-        result.append(item.to_short_json)
-
     return JsonResponse({
         "status": "ok",
-        model.api_multiple_key(): result
+        model.api_multiple_key(): query_set_to_json(
+            model.favorite(request.user_id)
+        )
     })
 
 
