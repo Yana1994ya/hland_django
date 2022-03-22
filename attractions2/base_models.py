@@ -266,7 +266,8 @@ class Attraction(models.Model):
 
     additional_images = models.ManyToManyField(
         ImageAsset,
-        related_name="attraction_additional_image"
+        related_name="attraction_additional_image",
+        blank=True
     )
 
     lat = models.FloatField()

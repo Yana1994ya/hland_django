@@ -266,8 +266,54 @@ class TrailActivity(AttractionFilter):
         verbose_name_plural = "Trail Activities"
 
 
-class Trail(models.Model):
-    id = models.UUIDField(primary_key=True)
+class Trail(Attraction):
+
+    @classmethod
+    def short_related(cls) -> List[str]:
+        return []
+
+    @classmethod
+    def explore_filter(cls, qset, request):
+        query_set = cls.objects.all()
+
+        if "length_start" in request.GET:
+            query_set = query_set.filter(length__gte=int(request.GET["length_start"]))
+
+        if "length_end" in request.GET:
+            query_set = query_set.filter(length__lte=int(request.GET["length_end"]))
+
+        if "elevation_gain_start" in request.GET:
+            query_set = query_set.filter(elv_gain__gte=int(request.GET["elevation_gain_start"]))
+
+        if "elevation_gain_end" in request.GET:
+            query_set = query_set.filter(elv_gain__lte=int(request.GET["elevation_gain_end"]))
+
+        if "difficulty" in request.GET:
+            query_set = query_set.filter(difficulty__in=request.GET.getlist("difficulty"))
+
+        if "activities" in request.GET:
+            query_set = query_set.filter(activities__pk__in=request.GET.getlist("activities"))
+
+        if "attractions" in request.GET:
+            query_set = query_set.filter(attractions__pk__in=request.GET.getlist("attractions"))
+
+        if "suitabilities" in request.GET:
+            query_set = query_set.filter(suitabilities__pk__in=request.GET.getlist("suitabilities"))
+
+        # For map
+        if "lon_min" in request.GET:
+            query_set = query_set.filter(long__gte=float(request.GET["lon_min"]))
+
+        if "lon_max" in request.GET:
+            query_set = query_set.filter(long__lte=float(request.GET["lon_max"]))
+
+        if "lat_min" in request.GET:
+            query_set = query_set.filter(lat__gte=float(request.GET["lat_min"]))
+
+        if "lat_max" in request.GET:
+            query_set = query_set.filter(lat__lte=float(request.GET["lat_max"]))
+
+        return query_set
 
     @classmethod
     def api_multiple_key(cls) -> str:
@@ -286,46 +332,28 @@ class Trail(models.Model):
     length = models.PositiveIntegerField()
     elv_gain = models.PositiveIntegerField()
 
-    name = models.CharField(max_length=250)
-    lat = models.FloatField()
-    long = models.FloatField()
-
     owner = models.ForeignKey(
         'GoogleUser',
         on_delete=models.CASCADE
     )
 
-    main_image = models.ForeignKey(
-        ImageAsset,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
-    )
-
-    additional_images = models.ManyToManyField(
-        ImageAsset,
-        related_name="trail_additional_image"
-    )
-
     suitabilities = models.ManyToManyField(
         TrailSuitability,
-        related_name="suitable_trails"
+        related_name="suitable_trails",
+        blank=True
     )
 
     attractions = models.ManyToManyField(
         TrailAttraction,
-        related_name="trails_with_attraction"
+        related_name="trails_with_attraction",
+        blank=True
     )
 
     activities = models.ManyToManyField(
         TrailActivity,
-        related_name="trails_with_activity"
+        related_name="trails_with_activity",
+        blank=True
     )
-
-    date_modified = models.DateTimeField(auto_now=True)
-
-    avg_rating = models.DecimalField(max_digits=2, decimal_places=1, default=0)
-    rating_count = models.PositiveIntegerField(default=0)
 
     @property
     def to_short_json(self):
@@ -343,12 +371,28 @@ class Trail(models.Model):
             "rating_count": self.rating_count
         }
 
-        if self.main_image is None:
-            json_result["main_image"] = None
-        else:
-            json_result["main_image"] = self.main_image.thumb_600().to_json
-
         return json_result
+
+    @property
+    def to_json(self):
+        document = self.to_short_json
+
+        document["suitabilities"] = list(map(
+            lambda x: x.to_json,
+            self.suitabilities.all()
+        ))
+
+        document["attractions"] = list(map(
+            lambda x: x.to_json,
+            self.attractions.all()
+        ))
+
+        document["activities"] = list(map(
+            lambda x: x.to_json,
+            self.activities.all()
+        ))
+
+        return document
 
 
 class History(models.Model):
@@ -367,22 +411,6 @@ class History(models.Model):
         unique_together = [('user', 'attraction')]
 
 
-class TrailHistory(models.Model):
-    user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
-    trail = models.ForeignKey(Trail, on_delete=models.CASCADE)
-    # When the user first visited an attraction
-    created = models.DateTimeField()
-    # When the user last visited an attraction
-    last_visited = models.DateTimeField()
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['user', '-last_visited']),
-        ]
-
-        unique_together = [('user', 'trail')]
-
-
 class Favorite(models.Model):
     user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
     attraction = models.ForeignKey(Attraction, on_delete=models.CASCADE)
@@ -396,56 +424,10 @@ class Favorite(models.Model):
         unique_together = [('user', 'attraction')]
 
 
-class TrailFavorite(models.Model):
-    user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
-    trail = models.ForeignKey(Trail, on_delete=models.CASCADE)
-    created = models.DateTimeField()
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['user', '-created']),
-        ]
-
-        unique_together = [('user', 'trail')]
-
-
 class UserImage(models.Model):
     user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
     image = models.ForeignKey(ImageAsset, on_delete=models.CASCADE)
 
-
-class TrailComment(models.Model):
-    trail = models.ForeignKey(Trail, on_delete=models.CASCADE)
-    user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
-
-    text = models.TextField(null=True, blank=True)
-    rating = models.PositiveSmallIntegerField()
-
-    images = models.ManyToManyField(
-        ImageAsset,
-        related_name="trail_comment_image"
-    )
-
-    created = models.DateTimeField(auto_now_add=True)
-    modified = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['trail', '-created']),
-        ]
-
-    @property
-    def to_json(self):
-        return {
-            "user": self.user.to_json,
-            "rating": self.rating,
-            "text": self.text,
-            "created": self.created.isoformat("T")
-        }
-
-    @property
-    def user_name(self) -> str:
-        return self.user.name
 
 
 def get_attraction_classes():
