@@ -1,6 +1,7 @@
 import re
 from typing import List, Type
 
+from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -75,7 +76,7 @@ class Zoo(ManagedAttraction):
 class OffRoadTripType(AttractionFilter):
     @classmethod
     def api_multiple_key(cls) -> str:
-        return "trip_types"
+        return "offroad_trip_types"
 
     @classmethod
     def api_single_key(cls) -> str:
@@ -392,6 +393,17 @@ class Trail(Attraction):
             self.activities.all()
         ))
 
+        document["owner"] = self.owner.to_json
+
+        cdn = settings.ASSETS.get("cdn")
+        bucket = settings.ASSETS["bucket"]
+        prefix = settings.ASSETS["prefix"]
+
+        if cdn is not None:
+            document["points"] = f"https://{cdn}/{prefix}trails/{self.id}.csv.gz"
+        else:
+            document["points"] = f"https://{bucket}.s3.amazonaws.com/{prefix}trails/{self.id}.csv.gz"
+
         return document
 
 
@@ -449,6 +461,26 @@ class AttractionModelConverter:
 
     def to_python(self, value: str) -> Type[Attraction]:
         for subclass in get_attraction_classes():
+            if value == subclass.api_multiple_key():
+                return subclass
+
+    def to_url(self, value: Type[Attraction]):
+        return value.api_multiple_key()
+
+
+def _generate_filter_regex() -> str:
+    parts = []
+    for subclass in AttractionFilter.__subclasses__():
+        parts.append(re.escape(subclass.api_multiple_key()))
+
+    return "|".join(parts)
+
+
+class FilterModelConverter:
+    regex = _generate_filter_regex()
+
+    def to_python(self, value: str) -> Type[AttractionFilter]:
+        for subclass in AttractionFilter.__subclasses__():
             if value == subclass.api_multiple_key():
                 return subclass
 

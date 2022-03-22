@@ -4,7 +4,6 @@ import io
 import tempfile
 
 from django import forms
-from django.core.exceptions import ValidationError
 
 from attractions2 import base_models
 from attractions2 import models
@@ -148,7 +147,7 @@ class RockClimbingForm(ManagedAttractionForm):
 
 class UserUploadImageForm(forms.Form):
     image = forms.ImageField(required=True)
-    trail_id = forms.UUIDField(required=False)
+    trail_id = forms.IntegerField(required=False)
 
 
 class MultipleTagField(forms.ModelMultipleChoiceField):

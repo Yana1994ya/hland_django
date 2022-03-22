@@ -6,7 +6,7 @@ import tempfile
 import time
 import uuid
 from datetime import datetime
-from typing import Optional, Type, List, Dict, Any
+from typing import Optional, Type, List, Dict
 
 import boto3
 import django.http.request
@@ -18,7 +18,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import cache_control, cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import condition
@@ -29,19 +28,19 @@ from attractions2.trail import analyze_trail, FileEmpty
 log = logging.getLogger(__name__)
 
 
-def _get_regions_last_modified(request):
-    return base_models.Region.objects.latest("date_modified").date_modified
+def _get_attraction_filter_last_modified(request, model: Type[models.AttractionFilter]):
+    return model.objects.latest("date_modified").date_modified
 
 
 # cache regions for 1 day
 @cache_page(60 * 60 * 24)
-@condition(last_modified_func=_get_regions_last_modified)
-def get_regions(request):
+@condition(last_modified_func=_get_attraction_filter_last_modified)
+def get_attraction_filter(request, model: Type[models.AttractionFilter]):
     return JsonResponse({
         "status": "ok",
-        "regions": list(map(
+        model.api_multiple_key(): list(map(
             lambda x: x.to_json,
-            base_models.Region.objects.order_by("name")
+            model.objects.order_by("name")
         ))
     })
 
@@ -369,65 +368,10 @@ def favorite(request: UserRequest):
 
 
 @with_user_id
-def favorite_trail(request: UserRequest):
-    trail_id = request.data["id"]
-
-    # If value is given, update favorite status
-    if "value" in request.data:
-        if request.data["value"]:
-            models.TrailFavorite.objects.get_or_create(
-                user_id=request.user_id,
-                trail_id=trail_id,
-                defaults={
-                    "created": datetime.utcnow().replace(tzinfo=pytz.UTC)
-                }
-            )
-        else:
-            models.TrailFavorite.objects.filter(
-                user_id=request.user_id,
-                trail_id=trail_id
-            ).delete()
-
-        return JsonResponse({
-            "status": "ok",
-        })
-    else:
-        return JsonResponse({
-            "status": "ok",
-            "value": models.TrailFavorite.objects.filter(
-                user_id=request.user_id,
-                trail_id=trail_id
-            ).count() > 0
-        })
-
-
-@with_user_id
 def favorites(request: UserRequest):
     return JsonResponse({
         "status": "ok",
         "favorites": count_items(request.user_id, "favorite")
-    })
-
-
-@with_user_id
-def favorites_trails(request: UserRequest):
-    return JsonResponse({
-        "status": "ok",
-        "trails": list(map(
-            lambda x: x.to_short_json,
-            models.Trail.objects.filter(trailfavorite__user_id=request.user_id).order_by("-trailfavorite__created")
-        ))
-    })
-
-
-@with_user_id
-def history_trails(request: UserRequest):
-    return JsonResponse({
-        "status": "ok",
-        "trails": list(map(
-            lambda x: x.to_short_json,
-            models.Trail.objects.filter(trailhistory__user_id=request.user_id).order_by("-trailhistory__created")
-        ))
     })
 
 
@@ -485,134 +429,6 @@ def map_attractions(request):
     })
 
 
-@cache_page(60 * 60 * 24)
-def get_attraction_filter(request, model: Type[models.AttractionFilter]):
-    return JsonResponse({
-        "status": "ok",
-        model.api_multiple_key(): list(map(
-            lambda x: x.to_json,
-            model.objects.order_by("name")
-        ))
-    })
-
-
-def _get_trail_modified_date(_request, trail_id: str) -> Optional[datetime]:
-    try:
-        return models.Trail.objects.get(id=trail_id).date_modified
-    except models.Trail.DoesNotExist:
-        return None
-
-
-def _trail_points_url(trail_id: str) -> str:
-    cdn = settings.ASSETS.get("cdn")
-    prefix = settings.ASSETS["prefix"]
-    bucket = settings.ASSETS["bucket"]
-
-    if cdn is not None:
-        return f"https://{cdn}/{prefix}trails/{trail_id}.csv.gz"
-    else:
-        return f"https://{bucket}.s3.amazonaws.com/{prefix}trails/{trail_id}.csv.gz"
-
-
-@cache_page(60 * 60 * 24)
-@condition(last_modified_func=_get_trail_modified_date)
-def get_trail(request, trail_id: str):
-    trail = get_object_or_404(models.Trail, id=trail_id)
-
-    additional_images = []
-    # For performance, read the correct thumbnail for all images at the same time
-    for image in models.ImageAsset.objects.filter(
-            request_width=900,
-            parent__trail_additional_image=trail,
-    ).select_related("parent").order_by("id"):
-        additional_images.append(image.to_json)
-
-    data = trail.to_short_json
-    data.update({
-        "points": _trail_points_url(trail.id),
-        "owner": trail.owner.to_json,
-        "additional_images": additional_images
-    })
-
-    if trail.main_image:
-        data["main_image"] = trail.main_image.landscape_thumb(900).to_json
-
-    data["activities"] = list(map(lambda x: x.to_json, trail.activities.all()))
-    data["attractions"] = list(map(lambda x: x.to_json, trail.attractions.all()))
-    data["suitabilities"] = list(map(lambda x: x.to_json, trail.suitabilities.all()))
-
-    return JsonResponse({
-        "status": "ok",
-        "trail": data
-    })
-
-
-def _trails_query_set(request) -> Any:
-    query_set = models.Trail.objects.all()
-
-    if "length_start" in request.GET:
-        query_set = query_set.filter(length__gte=int(request.GET["length_start"]))
-
-    if "length_end" in request.GET:
-        query_set = query_set.filter(length__lte=int(request.GET["length_end"]))
-
-    if "elevation_gain_start" in request.GET:
-        query_set = query_set.filter(elv_gain__gte=int(request.GET["elevation_gain_start"]))
-
-    if "elevation_gain_end" in request.GET:
-        query_set = query_set.filter(elv_gain__lte=int(request.GET["elevation_gain_end"]))
-
-    if "difficulty" in request.GET:
-        query_set = query_set.filter(difficulty__in=request.GET.getlist("difficulty"))
-
-    if "activities" in request.GET:
-        query_set = query_set.filter(activities__pk__in=request.GET.getlist("activities"))
-
-    if "attractions" in request.GET:
-        query_set = query_set.filter(attractions__pk__in=request.GET.getlist("attractions"))
-
-    if "suitabilities" in request.GET:
-        query_set = query_set.filter(suitabilities__pk__in=request.GET.getlist("suitabilities"))
-
-    # For map
-    if "lon_min" in request.GET:
-        query_set = query_set.filter(long__gte=float(request.GET["lon_min"]))
-
-    if "lon_max" in request.GET:
-        query_set = query_set.filter(long__lte=float(request.GET["lon_max"]))
-
-    if "lat_min" in request.GET:
-        query_set = query_set.filter(lat__gte=float(request.GET["lat_min"]))
-
-    if "lat_max" in request.GET:
-        query_set = query_set.filter(lat__lte=float(request.GET["lat_max"]))
-
-    return query_set
-
-
-def _trails_modified(request):
-    try:
-        return _trails_query_set(request).latest("date_modified").date_modified
-    except models.Trail.DoesNotExist:
-        return None
-
-
-@cache_page(60 * 60)
-@condition(last_modified_func=_trails_modified)
-def get_trails(request):
-    trails = _trails_query_set(request)
-
-    data = []
-
-    for trail in trails:
-        data.append(trail.to_short_json)
-
-    return JsonResponse({
-        "status": "ok",
-        "trails": data
-    })
-
-
 @csrf_exempt
 def upload_start(request):
     if request.method != "POST":
@@ -650,10 +466,20 @@ def upload_start(request):
             userimage__user_id=user_id,
         ))
 
-    trail_id = uuid.uuid4()
+    trail = models.Trail(
+        name=name,
+        difficulty=difficulty,
+        length=int(trail_analysis.distance),
+        elv_gain=int(trail_analysis.elevation_gain),
+        lat=trail_analysis.center_latitude,
+        long=trail_analysis.center_longitude,
+        owner_id=str(user_id)
+    )
+
+    trail.save()
 
     s3 = boto3.client("s3", **settings.ASSETS["config"])
-    key = settings.ASSETS["prefix"] + "trails/" + str(trail_id) + ".csv.gz"
+    key = settings.ASSETS["prefix"] + "trails/" + str(trail.id) + ".csv.gz"
     bucket = settings.ASSETS["bucket"]
 
     request.FILES["file"].seek(0)
@@ -664,21 +490,8 @@ def upload_start(request):
         "CacheControl": "public, max-age=2592000"
     })
 
-    trail = models.Trail(
-        id=trail_id,
-        name=name,
-        difficulty=difficulty,
-        length=int(trail_analysis.distance),
-        elv_gain=int(trail_analysis.elevation_gain),
-        lat=trail_analysis.center_latitude,
-        long=trail_analysis.center_longitude,
-        owner_id=str(user_id)
-    )
-
     if images:
         trail.main_image = images[0]
-
-    trail.save()
 
     # Add any additional image to the trail
     for additional_image in images[1:]:
@@ -706,7 +519,7 @@ def upload_start(request):
     return JsonResponse({
         "status": "ok",
         "trail": {
-            "id": str(trail_id)
+            "id": trail.id
         }
     })
 
@@ -804,7 +617,11 @@ def upload_image(request):
                 }
             })
         else:
-            trail.additional_images.add(image_asset)
+            if trail.main_image is None:
+                trail.main_image = image_asset
+                trail.save()
+            else:
+                trail.additional_images.add(image_asset)
 
             return JsonResponse({
                 "status": "ok"
@@ -892,68 +709,11 @@ def add_comment(request: UserRequest):
     })
 
 
-@with_user_id
-def add_trail_comment(request: UserRequest):
-    comment_text = None
-    if "text" in request.data:
-        comment_text = request.data["text"]
-
-    trail_id = request.data["trail_id"]
-
-    # Make sure the data we're referring a comment to actually exists
-    if models.Trail.objects.filter(id=trail_id).count() == 0:
-        return JsonResponse({
-            "status": "error",
-            "code": "InvalidData",
-            "message": "Trail for comment not found"
-        })
-
-    rating = int(request.data["rating"])
-
-    if rating < 1:
-        return JsonResponse({
-            "status": "error",
-            "code": "InvalidData",
-            "message": "Rating can't be less than 1"
-        })
-    elif rating > 5:
-        return JsonResponse({
-            "status": "error",
-            "code": "InvalidData",
-            "message": "Rating can't be more than 1"
-        })
-
-    comment = models.TrailComment(
-        trail_id=trail_id,
-        user_id=request.user_id,
-        text=comment_text,
-        rating=rating
+def get_comments(_request, attraction_id: int, page_number: int) -> JsonResponse:
+    qset = base_models.AttractionComment.objects.filter(
+        attraction_id=attraction_id
     )
 
-    comment.save()
-
-    if "image_ids" in request.data:
-        image_ids = request.data["image_ids"]
-        for image in models.ImageAsset.objects.filter(id__in=image_ids, userimage__user_id=request.user_id):
-            comment.images.add(image)
-
-    # Recalculate the denormalized fields
-    trail = models.Trail.objects.annotate(
-        calc_avg_rating=Avg("trailcomment__rating"),
-        calc_count=Count("trailcomment__id")
-    ).get(id=trail_id)
-
-    trail.avg_rating = trail.calc_avg_rating
-    trail.rating_count = trail.calc_count
-    trail.save()
-
-    return JsonResponse({
-        "status": "ok",
-        "comment_id": comment.id
-    })
-
-
-def get_comments(qset, page_number: int) -> JsonResponse:
     paginator = Paginator(
         qset.order_by("-created")
             .select_related("user")
@@ -1004,21 +764,3 @@ def get_comments(qset, page_number: int) -> JsonResponse:
             "items": result
         }
     })
-
-
-def get_attraction_comments(_request, attraction_id: int, page_number: int):
-    return get_comments(
-        base_models.AttractionComment.objects.filter(
-            attraction_id=attraction_id
-        ),
-        page_number
-    )
-
-
-def get_trail_comments(_request, trail_id: str, page_number: int):
-    return get_comments(
-        models.TrailComment.objects.filter(
-            trail_id=trail_id
-        ),
-        page_number
-    )

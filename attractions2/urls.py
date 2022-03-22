@@ -2,7 +2,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.urls import path, register_converter
 
 from attractions2 import api_views, views
-from attractions2.models import AttractionModelConverter
+from attractions2.models import AttractionModelConverter, FilterModelConverter
 
 
 def get_api_urls_for(model, edit_view):
@@ -83,6 +83,7 @@ def get_api_urls_for(model, edit_view):
 #               get_api_urls_for(models.RockClimbing, views.EditRockClimbing.as_view())
 
 register_converter(AttractionModelConverter, "model")
+register_converter(FilterModelConverter, "filter")
 
 urlpatterns = [
     path("api/<model:model>", api_views.get_explore),
@@ -95,4 +96,9 @@ urlpatterns = [
     path("api/favorites", api_views.favorites),
     path("api/favorites/<model:model>", api_views.favorites_list),
     path("api/visit", api_views.visit),
+    path("api/comments/attraction", api_views.add_comment),
+    path("api/comments/attraction/<int:attraction_id>/<int:page_number>", api_views.get_comments),
+    path("api/<filter:model>", api_views.get_attraction_filter),
+    path("api/trail/upload", api_views.upload_start),
+    path("api/upload_image", api_views.upload_image),
 ]
