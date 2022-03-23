@@ -476,6 +476,9 @@ def upload_start(request):
         owner_id=str(user_id)
     )
 
+    if images:
+        trail.main_image = images[0]
+
     trail.save()
 
     s3 = boto3.client("s3", **settings.ASSETS["config"])
@@ -489,9 +492,6 @@ def upload_start(request):
         "ACL": "public-read",
         "CacheControl": "public, max-age=2592000"
     })
-
-    if images:
-        trail.main_image = images[0]
 
     # Add any additional image to the trail
     for additional_image in images[1:]:
