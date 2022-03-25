@@ -24,8 +24,6 @@ class TagField(forms.ModelChoiceField):
 class BaseAttractionForm(forms.Form):
     name = forms.CharField()
 
-    description = forms.CharField(required=False, widget=forms.Textarea())
-
     long = forms.FloatField(widget=forms.TextInput(attrs={
         "type": "number",
         "max": "36",
@@ -61,6 +59,24 @@ class BaseAttractionForm(forms.Form):
                 data = data.replace("  ", " ")
 
         return data
+
+
+class ManagedAttractionForm(BaseAttractionForm):
+    description = forms.CharField(required=False, widget=forms.Textarea())
+
+    address = forms.CharField()
+
+    website = forms.URLField(widget=forms.TextInput(attrs={
+        "type": "url"
+    }), required=False)
+
+    region = TagField(queryset=base_models.Region.objects)
+
+    telephone = forms.RegexField(
+        regex="^[0-9]{9,10}$"
+    )
+
+    city = forms.CharField()
 
     def clean_address(self):
         data = self.cleaned_data["address"]
@@ -99,22 +115,6 @@ class BaseAttractionForm(forms.Form):
             )
 
         return data
-
-
-class ManagedAttractionForm(BaseAttractionForm):
-    address = forms.CharField()
-
-    website = forms.URLField(widget=forms.TextInput(attrs={
-        "type": "url"
-    }), required=False)
-
-    region = TagField(queryset=base_models.Region.objects)
-
-    telephone = forms.RegexField(
-        regex="^[0-9]{9,10}$"
-    )
-
-    city = forms.CharField()
 
 
 class MuseumForm(ManagedAttractionForm):
@@ -162,9 +162,7 @@ class MultipleTagField(forms.ModelMultipleChoiceField):
         return obj.name
 
 
-class TrailForm(forms.Form):
-    name = forms.CharField()
-
+class TrailForm(BaseAttractionForm):
     difficulty = forms.ChoiceField(choices=[
         ("E", "easy"),
         ("M", "moderate"),
@@ -172,9 +170,6 @@ class TrailForm(forms.Form):
     ])
 
     owner = forms.ModelChoiceField(models.GoogleUser.objects.all())
-
-    image = forms.ImageField(required=False)
-    additional_image = forms.ImageField(required=False)
 
     coordinates = forms.FileField(required=False)
 
@@ -186,17 +181,10 @@ class TrailForm(forms.Form):
         "readonly": "readonly"
     }))
 
-    long = forms.FloatField(required=False, widget=forms.TextInput(attrs={
-        "readonly": "readonly"
-    }))
-
-    lat = forms.FloatField(required=False, widget=forms.TextInput(attrs={
-        "readonly": "readonly"
-    }))
-
     suitabilities = MultipleTagField(
         models.TrailSuitability.objects.all()
     )
+
     activities = MultipleTagField(
         models.TrailActivity.objects.all(),
     )

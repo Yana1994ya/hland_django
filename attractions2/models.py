@@ -1,5 +1,5 @@
 import re
-from typing import List, Type
+from typing import List, Type, Union
 
 from django.conf import settings
 from django.db import models
@@ -464,7 +464,9 @@ class AttractionModelConverter:
             if value == subclass.api_multiple_key():
                 return subclass
 
-    def to_url(self, value: Type[Attraction]):
+    def to_url(self, value: Union[str, Type[Attraction]]):
+        if isinstance(value, str):
+            return value
         return value.api_multiple_key()
 
 

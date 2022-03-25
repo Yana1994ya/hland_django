@@ -30,15 +30,15 @@
             </div>
             <!-- links for first row -->
             <div class="features col mt-0">
-                <a href="{% url "museums" %}" class="icon-link">View museums &gt;</a>
+                <a href="{% url "display" model="museums" %}" class="icon-link">View museums &gt;</a>
             </div>
 
             <div class="features col mt-0">
-                <a href="{% url "wineries" %}" class="icon-link">View wineries &gt;</a>
+                <a href="{% url "display" model="wineries" %}" class="icon-link">View wineries &gt;</a>
             </div>
 
             <div class="features col mt-0">
-                <a href="{% url "zoos" %}" class="icon-link">View zoos &gt;</a>
+                <a href="{% url "display" model="zoos" %}" class="icon-link">View zoos &gt;</a>
             </div>
             <!-- Second row -->
             <div class="feature col">
@@ -64,15 +64,16 @@
 
             <!-- links for second row -->
             <div class="features col mt-0">
-                <a href="{% url "offroad" %}" class="icon-link">View Off-Road trips &gt;</a>
+                <a href="{% url "display" model="offroad" %}" class="icon-link">View Off-Road trips &gt;</a>
             </div>
 
             <div class="features col mt-0">
-                <a href="{% url "trail" %}" class="icon-link">View trails &gt;</a>
+                <a href="{% url "display" model="trails" %}" class="icon-link">View trails &gt;</a>
             </div>
 
             <div class="features col mt-0">
-                <a href="{% url "rock_climbing" %}" class="icon-link">View rock climbing attractions &gt;</a>
+                <a href="{% url "display" model="rock_climbing" %}" class="icon-link">View rock climbing attractions
+                    &gt;</a>
             </div>
 
             <!-- Third row -->
@@ -88,7 +89,8 @@
 
             <!-- links for third row -->
             <div class="features col mt-0">
-                <a href="{% url "water_sports" %}" class="icon-link">View water sports attractions &gt;</a>
+                <a href="{% url "display" model="water_sports" %}" class="icon-link">View water sports attractions
+                    &gt;</a>
             </div>
 
         </div>

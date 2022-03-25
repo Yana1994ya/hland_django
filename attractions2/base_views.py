@@ -2,9 +2,10 @@ import abc
 from typing import NoReturn, Optional
 
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
-from django.urls import reverse
+from django.urls import reverse, path
 from django.views import View
 
 from attractions2 import models
@@ -43,7 +44,7 @@ class EditView(View, abc.ABC):
 
     @classmethod
     def redirect_index(cls):
-        return redirect(cls.model.api_multiple_key())
+        return redirect("display", model=cls.model)
 
     def get_initial(self, instance: models.Attraction) -> dict:
         if instance.id is None:
@@ -51,14 +52,8 @@ class EditView(View, abc.ABC):
         else:
             return {
                 "name": instance.name,
-                "description": instance.description,
-                "website": instance.website,
                 "lat": instance.lat,
                 "long": instance.long,
-                "region": instance.region,
-                "address": instance.address,
-                "telephone": instance.telephone,
-                "city": instance.city
             }
 
     @abc.abstractmethod
@@ -67,23 +62,9 @@ class EditView(View, abc.ABC):
 
     def update_instance(self, instance: models.Attraction, cleaned_data: dict) -> NoReturn:
         instance.name = cleaned_data["name"]
-        instance.description = cleaned_data["description"]
-        instance.website = cleaned_data.get("website")
 
         instance.lat = cleaned_data["lat"]
         instance.long = cleaned_data["long"]
-
-        instance.telephone = cleaned_data.get("telephone")
-        instance.city = cleaned_data.get("city")
-
-        instance.region = cleaned_data.get("region")
-        instance.address = cleaned_data.get("address")
-
-        if cleaned_data["image"]:
-            instance.main_image = models.ImageAsset.upload_file(
-                cleaned_data["image"],
-                old_asset=instance.main_image
-            )
 
     def handle_m2m(self, instance: models.Attraction, cleaned_data: dict) -> NoReturn:
         pass
@@ -152,3 +133,44 @@ class EditView(View, abc.ABC):
                 "action": self.get_action(pk)
             }
         )
+
+    @classmethod
+    def urls(cls):
+        single = cls.model.api_single_key()
+        edit_view = staff_member_required(cls.as_view())
+
+        return [
+            path(f"add_{single}", edit_view, {f"{single}_id": None}, name=f"add_{single}"),
+            path(f"edit_{single}/<int:{single}_id>", edit_view, name=f"edit_{single}"),
+        ]
+
+
+class ManagedEditView(EditView, abc.ABC):
+    def get_initial(self, instance: models.ManagedAttraction) -> dict:
+        if instance.id is None:
+            return {}
+        else:
+            data = super().get_initial(instance)
+
+            data.update({
+                "description": instance.description,
+                "website": instance.website,
+                "region": instance.region,
+                "address": instance.address,
+                "telephone": instance.telephone,
+                "city": instance.city
+            })
+
+            return data
+
+    def update_instance(self, instance: models.ManagedAttraction, cleaned_data: dict) -> NoReturn:
+        super().update_instance(instance, cleaned_data)
+
+        instance.description = cleaned_data["description"]
+        instance.website = cleaned_data.get("website")
+
+        instance.telephone = cleaned_data.get("telephone")
+        instance.city = cleaned_data.get("city")
+
+        instance.region = cleaned_data.get("region")
+        instance.address = cleaned_data.get("address")

@@ -1,20 +1,15 @@
-import uuid
-from typing import NoReturn, Optional
-from uuid import UUID
+from typing import NoReturn
 
 import boto3
-from PIL import Image
 from django.conf import settings
-from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
-from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
-from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
 from attractions2 import forms, models
-from attractions2.base_views import EditView
+from attractions2.base_views import EditView, ManagedEditView
 from attractions2.pager import Pager
 
 
@@ -41,7 +36,7 @@ def homepage(request):
     )
 
 
-class EditMuseum(EditView):
+class EditMuseum(ManagedEditView):
     form_class = forms.MuseumForm
     model = models.Museum
 
@@ -61,7 +56,7 @@ class EditMuseum(EditView):
         instance.domain = cleaned_data["domain"]
 
 
-class EditWinery(EditView):
+class EditWinery(ManagedEditView):
     form_class = forms.WineryForm
     model = models.Winery
 
@@ -69,7 +64,7 @@ class EditWinery(EditView):
         return f"Winery {instance.name} was saved successfully"
 
 
-class EditZoo(EditView):
+class EditZoo(ManagedEditView):
     form_class = forms.ZooForm
     model = models.Zoo
 
@@ -77,7 +72,7 @@ class EditZoo(EditView):
         return f"Zoo {instance.name} was saved successfully"
 
 
-class EditOffRoad(EditView):
+class EditOffRoad(ManagedEditView):
     form_class = forms.OffRoadForm
     model = models.OffRoad
 
@@ -101,7 +96,7 @@ class EditOffRoad(EditView):
         return "attractions/edit_offroad.html"
 
 
-class EditWaterSports(EditView):
+class EditWaterSports(ManagedEditView):
     form_class = forms.WaterSportsForm
     model = models.WaterSports
 
@@ -125,7 +120,7 @@ class EditWaterSports(EditView):
         return "attractions/edit_water_sports.html"
 
 
-class EditRockClimbing(EditView):
+class EditRockClimbing(ManagedEditView):
     form_class = forms.RockClimbingForm
     model = models.RockClimbing
 
@@ -149,140 +144,64 @@ class EditRockClimbing(EditView):
         return "attractions/edit_rock_climbing.html"
 
 
-@staff_member_required
-def edit_trail(request, trail_id: Optional[UUID] = None):
-    if trail_id is None:
-        trail = models.Trail()
-        initial = {}
-        action = reverse(edit_trail)
-    else:
-        trail = models.Trail.objects.get(id=trail_id)
+class EditTrail(EditView):
+    form_class = forms.TrailForm
+    model = models.Trail
 
-        initial = {
-            "name": trail.name,
-            "difficulty": trail.difficulty,
-            "owner": trail.owner,
-            "suitabilities": trail.suitabilities.all(),
-            "attractions": trail.attractions.all(),
-            "activities": trail.activities.all(),
-            "length": trail.length,
-            "elevation_gain": trail.elv_gain,
-            "long": trail.long,
-            "lat": trail.lat
-        }
+    def success_message(self, instance: models.Trail) -> str:
+        return f"Trail {instance.name} was saved successfully"
 
-        action = reverse(edit_trail, kwargs={"trail_id": trail_id})
+    def get_initial(self, instance: models.Trail) -> dict:
+        initial = super().get_initial(instance)
 
-    if request.method == "POST":
-        form = forms.TrailForm(request.POST, request.FILES, initial=initial)
+        if instance.id is not None:
+            initial["difficulty"] = instance.difficulty
+            initial["owner"] = instance.owner
+            initial["length"] = instance.length
+            initial["elevation_gain"] = instance.elv_gain
 
-        for additional_image_id in request.POST.getlist("delete_additional"):
-            try:
-                image = trail.additional_images.get(id=int(additional_image_id))
-                image.delete()
-            except models.ImageAsset.DoesNotExist:
-                pass
+            initial["suitabilities"] = instance.suitabilities.all()
+            initial["activities"] = instance.activities.all()
+            initial["attractions"] = instance.attractions.all()
 
-        if form.is_valid():
-            if trail.id is None:
-                trail.id = uuid.uuid4()
+        return initial
 
-            coordinates = form.cleaned_data["coordinates"]
-            if coordinates is not None:
-                s3 = boto3.client("s3", **settings.ASSETS["config"])
-                key = settings.ASSETS["prefix"] + "trails/" + str(trail.id) + ".csv.gz"
-                bucket = settings.ASSETS["bucket"]
+    def update_instance(self, instance: models.Trail, cleaned_data: dict):
+        super().update_instance(instance, cleaned_data)
 
-                coordinates.seek(0)
-                s3.upload_fileobj(coordinates, bucket, key, ExtraArgs={
-                    "ContentType": "text/csv",
-                    "ContentEncoding": "gzip",
-                    "ACL": "public-read",
-                    "CacheControl": "public, max-age=2592000"
-                })
+        instance.difficulty = cleaned_data["difficulty"]
+        instance.owner = cleaned_data["owner"]
+        instance.length = cleaned_data["length"]
+        instance.elv_gain = cleaned_data["elevation_gain"]
 
-                trail.long = form.cleaned_data["long"]
-                trail.lat = form.cleaned_data["lat"]
-                trail.length = form.cleaned_data["length"]
-                trail.elv_gain = form.cleaned_data["elevation_gain"]
+    def handle_m2m(self, instance: models.Trail, cleaned_data: dict) -> NoReturn:
+        instance.suitabilities.set(cleaned_data["suitabilities"], clear=True)
+        instance.activities.set(cleaned_data["activities"], clear=True)
+        instance.attractions.set(cleaned_data["attractions"], clear=True)
 
-            trail.owner = form.cleaned_data["owner"]
-            trail.difficulty = form.cleaned_data["difficulty"]
-            trail.name = form.cleaned_data["name"]
+        # Update the coordinates in the handle_m2m function because this requires the
+        # id of the trail to be set
+        coordinates = cleaned_data["coordinates"]
+        if coordinates is not None:
+            s3 = boto3.client("s3", **settings.ASSETS["config"])
+            key = settings.ASSETS["prefix"] + "trails/" + str(instance.id) + ".csv.gz"
+            bucket = settings.ASSETS["bucket"]
 
-            main_image = form.cleaned_data["image"]
-            if main_image:
-                trail.main_image = models.ImageAsset.upload_file(
-                    main_image,
-                    old_asset=trail.main_image
-                )
-
-            trail.save()
-
-            trail.suitabilities.set(form.cleaned_data["suitabilities"], clear=True)
-            trail.activities.set(form.cleaned_data["activities"], clear=True)
-            trail.attractions.set(form.cleaned_data["attractions"], clear=True)
-
-            additional_image = form.cleaned_data["additional_image"]
-            if additional_image:
-                trail.additional_images.add(models.ImageAsset.upload_file(
-                    additional_image,
-                    old_asset=None
-                ))
-
-            messages.add_message(request, messages.INFO, f"Trail {trail.name} was updated/created successfully")
-
-            if request.POST.get("next") == "exit":
-                return reverse("trail")
-            else:
-                return HttpResponseRedirect(reverse(edit_trail, kwargs={"trail_id": trail.id}))
-
-    else:
-        form = forms.TrailForm(initial=initial)
-
-    return render(
-        request,
-        "attractions/trail.html",
-        {
-            "form": form,
-            "instance": trail,
-            "action": action
-        }
-    )
-
-
-@staff_member_required
-@csrf_exempt
-def trail_upload(request, trail_id: UUID):
-    trail = models.Trail.objects.get(id=trail_id)
-
-    if request.method != "POST":
-        return HttpResponse(status=405, body="Only post requests are allowed")
-    else:
-        form = forms.UserUploadImageForm(request.POST, request.FILES)
-
-        if form.is_valid():
-            image = models.ImageAsset.upload_file(
-                form.cleaned_data["image"],
-                old_asset=None
-            )
-
-            image.save()
-
-            trail.additional_images.add(image)
-
-            image_data = image.to_json
-            image_data["id"] = image.id
-
-            return JsonResponse({
-                "status": "ok",
-                "image": image_data
+            coordinates.seek(0)
+            s3.upload_fileobj(coordinates, bucket, key, ExtraArgs={
+                "ContentType": "text/csv",
+                "ContentEncoding": "gzip",
+                "ACL": "public-read",
+                "CacheControl": "public, max-age=2592000"
             })
-        else:
-            return JsonResponse({
-                "status": "error",
-                "message": str(form.errors)
-            })
+
+            instance.long = cleaned_data["long"]
+            instance.lat = cleaned_data["lat"]
+            instance.length = cleaned_data["length"]
+            instance.elv_gain = cleaned_data["elevation_gain"]
+
+            # And finally, save the trail with the new specs
+            instance.save()
 
 
 @staff_member_required
@@ -317,4 +236,3 @@ def attraction_upload(request, attraction_id: int):
                 "status": "error",
                 "message": str(form.errors)
             })
-
