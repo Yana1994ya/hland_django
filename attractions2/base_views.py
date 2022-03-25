@@ -90,10 +90,12 @@ class EditView(View, abc.ABC):
     def post(self, request, **kwargs):
         pk = self.get_id(kwargs)
         instance = self.get_instance(pk)
+        initial = self.get_initial(instance)
 
         form = self.form_class(
             request.POST,
-            request.FILES
+            request.FILES,
+            initial=initial
         )
 
         if form.is_valid():
