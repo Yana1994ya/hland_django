@@ -407,25 +407,53 @@ def map_attractions(request):
     lat_min = float(request.GET["lat_min"])
     lat_max = float(request.GET["lat_max"])
 
-    attractions = []
-    for attraction in models.Attraction.objects.filter(
-            long__gte=lon_min,
-            long__lte=lon_max,
-            lat__gte=lat_min,
-            lat__lte=lat_max,
-            content_type__isnull=False
-    ).select_related("content_type"):
-        attractions.append({
+    qset = models.Attraction.objects.filter(
+        long__gte=lon_min,
+        long__lte=lon_max,
+        lat__gte=lat_min,
+        lat__lte=lat_max,
+        content_type__isnull=False
+    )
+
+    if request.GET.get("objects") == "attractions":
+        qset = qset.exclude(content_type=ContentType.objects.get_for_model(models.Trail))
+    elif request.GET.get("objects") == "trails":
+        qset = qset.filter(content_type=ContentType.objects.get_for_model(models.Trail))
+
+    attractions = list(qset.select_related("content_type"))
+
+    image_ids = set(map(
+        lambda x: x.main_image_id,
+        filter(
+            lambda x: x.main_image_id is not None,
+            attractions
+        )
+    ))
+
+    images = models.ImageAsset.resolve_thumbs(image_ids, 600)
+
+    result = []
+    for attraction in attractions:
+        json_doc = {
             "id": attraction.id,
             "name": attraction.name,
             "long": attraction.long,
             "lat": attraction.lat,
-            "type": attraction.content_type.model_class().api_single_key()
-        })
+            "type": attraction.content_type.model_class().api_single_key(),
+            "avg_rating": attraction.avg_rating,
+            "rating_count": attraction.rating_count
+        }
+
+        if attraction.main_image_id is None:
+            json_doc["main_image"] = None
+        else:
+            json_doc["main_image"] = images[attraction.main_image_id].to_json
+
+        result.append(json_doc)
 
     return JsonResponse({
         "status": "ok",
-        "attractions": attractions
+        "attractions": result
     })
 
 
