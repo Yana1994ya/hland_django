@@ -268,7 +268,6 @@ class TrailActivity(AttractionFilter):
 
 
 class Trail(Attraction):
-
     @classmethod
     def short_related(cls) -> List[str]:
         return []

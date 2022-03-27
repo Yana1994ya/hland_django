@@ -298,7 +298,6 @@ class Attraction(models.Model):
     @classmethod
     def short_query(cls):
         return cls.objects \
-            .defer("description", "website") \
             .select_related(*cls.short_related())
 
     @classmethod
@@ -363,6 +362,12 @@ class ManagedAttraction(Attraction):
 
         return qset
 
+    @classmethod
+    def short_query(cls):
+        return cls.objects \
+            .defer("description", "website") \
+            .select_related(*cls.short_related())
+
     @property
     def to_short_json(self):
         return {
@@ -393,9 +398,6 @@ class ManagedAttraction(Attraction):
 
     class Meta:
         abstract = True
-
-
-
 
 
 class AttractionComment(models.Model):
