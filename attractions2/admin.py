@@ -64,3 +64,10 @@ class CommentsAdmin(admin.ModelAdmin):
 
 
 admin.site.register(base_models.AttractionComment, CommentsAdmin)
+
+
+class ExtremeSportsTypeAdmin(admin.ModelAdmin):
+    pass
+
+
+admin.site.register(models.ExtremeSportsType, ExtremeSportsTypeAdmin)

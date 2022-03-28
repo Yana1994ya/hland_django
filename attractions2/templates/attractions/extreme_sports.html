@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block body %}
+    <div class="container">
+        <h1>Extreme sports attractions</h1>
+        <div class="row pb-3">
+            {% for extreme_sports in page.object_list %}
+                <div class="row">
+                    <a href="{% url "edit_extreme_sports" extreme_sports_id=extreme_sports.id %}">{{ extreme_sports.name }}</a>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="row pb-1">
+            <a href="{% url "add_extreme_sports" %}">Create extreme sports attractions</a>
+        </div>
+
+        {{ pager.render }}
+    </div>
+{% endblock %}

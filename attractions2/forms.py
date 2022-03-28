@@ -145,6 +145,12 @@ class RockClimbingForm(ManagedAttractionForm):
     )
 
 
+class ExtremeSportsForm(ManagedAttractionForm):
+    sport_type = TagField(
+        queryset=models.ExtremeSportsType.objects
+    )
+
+
 class UserUploadImageForm(forms.Form):
     image = forms.ImageField(required=True)
     trail_id = forms.IntegerField(required=False)

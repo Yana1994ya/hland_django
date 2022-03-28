@@ -84,12 +84,21 @@
                 <p>View and edit the water sports attractions offered in the application</p>
             </div>
 
-            <div class="feature col"></div>
+            <div class="feature col">
+                <img src="{% static "attractions/extreme_sports.jpg" %}" width="150" height="100"
+                     alt="Extreme sports attractions"/>
+                <h2>Extreme sports attractions</h2>
+                <p>View and edit the extreme sports attractions offered in the application</p>
+            </div>
             <div class="feature col"></div>
 
             <!-- links for third row -->
             <div class="features col mt-0">
                 <a href="{% url "display" model="water_sports" %}" class="icon-link">View water sports attractions
+                    &gt;</a>
+            </div>
+            <div class="features col mt-0">
+                <a href="{% url "display" model="extreme_sports" %}" class="icon-link">View extreme sports attractions
                     &gt;</a>
             </div>
 

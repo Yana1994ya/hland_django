@@ -1,0 +1,17 @@
+{% extends "attractions/base_form.html" %}
+{% load django_bootstrap5 %}
+
+{% block form_title %}
+    {% if create %}
+        <h1>Create extreme sports attraction</h1>
+    {% else %}
+        <h1>Edit extreme sports attraction</h1>
+    {% endif %}
+{% endblock %}
+
+{% block extra_fields %}
+    <div class="col-4">
+        {% bootstrap_field form.sport_type %}
+    </div>
+{% endblock %}
+

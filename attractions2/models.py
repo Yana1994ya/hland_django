@@ -220,6 +220,54 @@ class RockClimbing(ManagedAttraction):
         return qset
 
 
+class ExtremeSportsType(AttractionFilter):
+    @classmethod
+    def api_single_key(cls) -> str:
+        return "extreme_sport_type"
+
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        return "extreme_sport_types"
+
+
+class ExtremeSports(ManagedAttraction):
+    sport_type = ExtremeSportsType()
+
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        return "extreme_sports"
+
+    @classmethod
+    def api_single_key(cls) -> str:
+        return "extreme_sports"
+
+    @classmethod
+    def short_related(cls) -> List[str]:
+        return super().short_related() + ["sport_type"]
+
+    @property
+    def to_short_json(self):
+        result = super().to_short_json
+
+        result.update({
+            "sport_type": self.sport_type.to_json
+        })
+
+        return result
+
+    @classmethod
+    def explore_filter(cls, qset, request):
+        qset = super().explore_filter(qset, request)
+
+        if "sport_type_id" in request.GET:
+            qset = qset.filter(sport_type_id__in=list(map(
+                int,
+                request.GET.getlist("sport_type_id"),
+            )))
+
+        return qset
+
+
 class TrailDifficulty(models.TextChoices):
     EASY = "E", _("Easy")
     NORMAL = "N", _("Normal")

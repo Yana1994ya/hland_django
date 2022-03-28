@@ -144,6 +144,30 @@ class EditRockClimbing(ManagedEditView):
         return "attractions/edit_rock_climbing.html"
 
 
+class EditExtremeSports(ManagedEditView):
+    form_class = forms.ExtremeSportsForm
+    model = models.ExtremeSports
+
+    def success_message(self, instance: models.ExtremeSports) -> str:
+        return f"Extreme sports attraction {instance.name} was saved successfully"
+
+    def get_initial(self, instance: models.ExtremeSports) -> dict:
+        initial = super().get_initial(instance)
+
+        if instance.id is not None:
+            initial["sport_type"] = instance.sport_type
+
+        return initial
+
+    def update_instance(self, instance: models.ExtremeSports, cleaned_data: dict):
+        super().update_instance(instance, cleaned_data)
+        instance.sport_type = cleaned_data["sport_type"]
+
+    @classmethod
+    def template_name(cls) -> str:
+        return "attractions/edit_extreme_sports.html"
+
+
 class EditTrail(EditView):
     form_class = forms.TrailForm
     model = models.Trail
