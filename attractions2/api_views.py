@@ -777,3 +777,49 @@ def get_comments(_request, attraction_id: int, page_number: int) -> JsonResponse
             "items": result
         }
     })
+
+
+def search(request):
+    q = request.GET.get("q", "")
+    page_number = 1
+
+    if "page" in request.GET:
+        page_number = int(request.GET["page"])
+
+    paginator = Paginator(
+        models.Attraction.objects.filter(name__icontains=q),
+        30
+    )
+
+    page = paginator.page(page_number)
+    # Load the thumbs in an efficient manner so many comments don't bring the application to a crawl
+    image_ids = set()
+
+    for item in page.object_list:
+        if item.main_image_id is not None:
+            image_ids.add(item.main_image_id)
+
+    images = models.ImageAsset.resolve_thumbs(image_ids, 600)
+
+    items = []
+
+    for item in page.object_list:
+        document = {
+            "id": item.id,
+            "name": item.name
+        }
+
+        if item.main_image_id is None:
+            document["main_image"] = None
+        else:
+            document["main_image"] = images[item.main_image_id].to_json
+
+        items.append(document)
+
+    return JsonResponse({
+        "status": "ok",
+        "page": {
+            "items": items,
+            "num_pages": paginator.num_pages
+        }
+    })
