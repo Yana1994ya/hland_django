@@ -6,7 +6,7 @@ import tempfile
 import time
 import uuid
 from datetime import datetime
-from typing import Optional, Type, List, Dict
+from typing import Type, List, Dict
 
 import boto3
 import django.http.request
@@ -660,21 +660,6 @@ def upload_image(request):
             "code": "BadRequest",
             "message": "Failed to validate image"
         })
-
-
-def resolve_object_type(object_type) -> Optional[ContentType]:
-    if object_type == "museum":
-        return ContentType.objects.get(model="museum", app_label="attractions2")
-    elif object_type == "winery":
-        return ContentType.objects.get(model="winery", app_label="attractions2")
-    elif object_type == "zoo":
-        return ContentType.objects.get(model="zoo", app_label="attractions2")
-    elif object_type == "trail":
-        return ContentType.objects.get(model="trail", app_label="attractions2")
-    elif object_type == "off_road_trip":
-        return ContentType.objects.get(model="offroad", app_label="attractions2")
-
-    return None
 
 
 @with_user_id

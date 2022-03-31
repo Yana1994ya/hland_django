@@ -231,7 +231,7 @@ class ExtremeSportsType(AttractionFilter):
 
 
 class ExtremeSports(ManagedAttraction):
-    sport_type = ExtremeSportsType()
+    sport_type = models.ForeignKey(ExtremeSportsType(), on_delete=models.CASCADE)
 
     @classmethod
     def api_multiple_key(cls) -> str:
