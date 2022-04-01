@@ -90,7 +90,12 @@
                 <h2>Extreme sports attractions</h2>
                 <p>View and edit the extreme sports attractions offered in the application</p>
             </div>
-            <div class="feature col"></div>
+            <div class="feature col">
+                <img src="{% static "attractions/hot-air.jpg" %}" width="150" height="100"
+                     alt="Extreme sports attractions"/>
+                <h2>Hot-air balloon attractions</h2>
+                <p>View and edit the hot-air balloon attractions offered in the application</p>
+            </div>
 
             <!-- links for third row -->
             <div class="features col mt-0">
@@ -99,6 +104,10 @@
             </div>
             <div class="features col mt-0">
                 <a href="{% url "display" model="extreme_sports" %}" class="icon-link">View extreme sports attractions
+                    &gt;</a>
+            </div>
+            <div class="features col mt-0">
+                <a href="{% url "display" model="hot_air" %}" class="icon-link">View hot-air balloon attractions
                     &gt;</a>
             </div>
 

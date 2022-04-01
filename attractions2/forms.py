@@ -129,6 +129,10 @@ class ZooForm(ManagedAttractionForm):
     pass
 
 
+class HotAirForm(ManagedAttractionForm):
+    pass
+
+
 class OffRoadForm(ManagedAttractionForm):
     trip_type = TagField(queryset=models.OffRoadTripType.objects)
 

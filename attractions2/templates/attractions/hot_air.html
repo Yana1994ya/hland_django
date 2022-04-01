@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block body %}
+    <div class="container">
+        <h1>Hot Air Attractions</h1>
+        <div class="row pb-3">
+            {% for zoo in page.object_list %}
+                <div class="row">
+                    <a href="{% url "edit_hot_air" hot_air_id=hot_air.id %}">{{ hot_air.name }}</a>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="row pb-1">
+            <a href="{% url "add_hot_air" %}">Create Hot Air Attraction</a>
+        </div>
+
+        {{ pager.render }}
+    </div>
+{% endblock %}

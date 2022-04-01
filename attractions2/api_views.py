@@ -787,7 +787,8 @@ def search(request):
         page_number = int(request.GET["page"])
 
     paginator = Paginator(
-        models.Attraction.objects.filter(name__icontains=q),
+        models.Attraction.objects.filter(name__icontains=q)
+            .select_related("content_type"),
         30
     )
 
@@ -803,16 +804,21 @@ def search(request):
 
     items = []
 
-    for item in page.object_list:
+    for attraction in page.object_list:
         document = {
-            "id": item.id,
-            "name": item.name
+            "id": attraction.id,
+            "name": attraction.name,
+            "long": attraction.long,
+            "lat": attraction.lat,
+            "type": attraction.content_type.model_class().api_single_key(),
+            "avg_rating": attraction.avg_rating,
+            "rating_count": attraction.rating_count
         }
 
-        if item.main_image_id is None:
+        if attraction.main_image_id is None:
             document["main_image"] = None
         else:
-            document["main_image"] = images[item.main_image_id].to_json
+            document["main_image"] = images[attraction.main_image_id].to_json
 
         items.append(document)
 

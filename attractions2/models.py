@@ -268,6 +268,16 @@ class ExtremeSports(ManagedAttraction):
         return qset
 
 
+class HotAir(ManagedAttraction):
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        return "hot_air"
+
+    @classmethod
+    def api_single_key(cls) -> str:
+        return "hot_air"
+
+
 class TrailDifficulty(models.TextChoices):
     EASY = "E", _("Easy")
     NORMAL = "N", _("Normal")

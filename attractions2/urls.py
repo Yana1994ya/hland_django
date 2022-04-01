@@ -36,4 +36,5 @@ urlpatterns = [
               views.EditRockClimbing.urls() + \
               views.EditWaterSports.urls() + \
               views.EditTrail.urls() + \
-              views.EditExtremeSports.urls()
+              views.EditExtremeSports.urls() + \
+              views.EditHotAir.urls()

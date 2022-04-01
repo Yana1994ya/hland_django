@@ -228,6 +228,18 @@ class EditTrail(EditView):
             instance.save()
 
 
+class EditHotAir(ManagedEditView):
+    form_class = forms.HotAirForm
+    model = models.HotAir
+
+    def success_message(self, instance: models.Zoo) -> str:
+        return f"Hot air attraction {instance.name} was saved successfully"
+
+    @classmethod
+    def template_name(cls) -> str:
+        return "attractions/edit_hot_air.html"
+
+
 @staff_member_required
 @csrf_exempt
 def attraction_upload(request, attraction_id: int):
