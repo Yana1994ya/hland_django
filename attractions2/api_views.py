@@ -327,7 +327,6 @@ def history(request: UserRequest):
 @with_user_id
 def delete_history(request: UserRequest):
     models.History.objects.filter(user_id=request.user_id).delete()
-    models.TrailHistory.objects.filter(user_id=request.user_id).delete()
 
     return JsonResponse({
         "status": "ok"

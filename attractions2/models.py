@@ -464,6 +464,172 @@ class Trail(Attraction):
         return document
 
 
+# class Package(AttractionFilter):
+#     image = models.ForeignKey(ImageAsset, on_delete=models.CASCADE)
+#
+#     @classmethod
+#     def api_multiple_key(cls) -> str:
+#         return "package"
+#
+#
+# class TourType(AttractionFilter):
+#     image = models.ForeignKey(ImageAsset, on_delete=models.CASCADE)
+#
+#     @classmethod
+#     def api_multiple_key(cls) -> str:
+#         return "tour_types"
+#
+#
+# class Overnight(AttractionFilter):
+#     image = models.ForeignKey(ImageAsset, on_delete=models.CASCADE)
+#
+#     @classmethod
+#     def api_multiple_key(cls) -> str:
+#         return "overnight"
+#
+#
+# class StartLocation(AttractionFilter):
+#     @classmethod
+#     def api_multiple_key(cls) -> str:
+#         return "start_location"
+#
+#
+# class TourDestination(AttractionFilter):
+#     @classmethod
+#     def api_multiple_key(cls) -> str:
+#         return "tour_destination"
+#
+#
+# class TourTheme(AttractionFilter):
+#     image = models.ForeignKey(ImageAsset, on_delete=models.CASCADE)
+#     focus = models.BooleanField(default=False)
+#
+#     @classmethod
+#     def api_multiple_key(cls) -> str:
+#         return "tour_theme"
+#
+#
+# class TourLanguage(AttractionFilter):
+#     @classmethod
+#     def api_multiple_key(cls) -> str:
+#         return "tour_language"
+#
+#
+# def filter_to_json(instance: Optional[AttractionFilter]) -> Optional[dict]:
+#     if instance is None:
+#         return None
+#     else:
+#         return instance.to_json
+#
+#
+# class Tour(Attraction):
+#     @classmethod
+#     def short_related(cls) -> List[str]:
+#         return [
+#             "tour_type",
+#             "package",
+#             "overnight",
+#             "start_location",
+#             "destination",
+#             "theme",
+#             "language"
+#         ]
+#
+#     @classmethod
+#     def api_multiple_key(cls) -> str:
+#         return "tours"
+#
+#     @classmethod
+#     def api_single_key(cls) -> str:
+#         return "tour"
+#
+#     @classmethod
+#     def explore_filter(cls, qset, request):
+#         pass
+#
+#     @property
+#     def to_short_json(self):
+#         return {
+#             "id": self.id,
+#             "name": self.name,
+#             "lat": self.lat,
+#             "long": self.long,
+#             "type": self.api_single_key(),
+#             "avg_rating": str(self.avg_rating),
+#             "rating_count": self.rating_count,
+#             "tour_type": filter_to_json(self.tour_type),
+#             "package": filter_to_json(self.package),
+#             "overnight": filter_to_json(self.overnight),
+#             "start_location": filter_to_json(self.start_location),
+#             "destination": filter_to_json(self.destination),
+#             "theme": filter_to_json(self.theme),
+#             "language": self.language.to_json
+#         }
+#
+#     @property
+#     def to_json(self):
+#         data = self.to_short_json
+#
+#         return data
+#
+#     tour_type = models.ForeignKey(
+#         TourType,
+#         on_delete=models.CASCADE,
+#         null=True,
+#         blank=True
+#     )
+#
+#     package = models.ForeignKey(
+#         Package,
+#         on_delete=models.CASCADE,
+#         null=True,
+#         blank=True
+#     )
+#
+#     overnight = models.ForeignKey(
+#         Overnight,
+#         on_delete=models.CASCADE,
+#         null=True,
+#         blank=True
+#     )
+#
+#     start_location = models.ForeignKey(
+#         StartLocation,
+#         on_delete=models.CASCADE,
+#         null=True,
+#         blank=True
+#     )
+#
+#     destination = models.ForeignKey(
+#         TourDestination,
+#         on_delete=models.CASCADE,
+#         null=True,
+#         blank=True
+#     )
+#
+#     theme = models.ForeignKey(
+#         TourTheme,
+#         on_delete=models.CASCADE,
+#         null=True,
+#         blank=True
+#     )
+#
+#     price = models.DecimalField(
+#         max_digits=9,
+#         decimal_places=2
+#     )
+#
+#     language = models.ForeignKey(
+#         TourLanguage,
+#         on_delete=models.CASCADE
+#     )
+#
+#     tour_length = models.DecimalField(
+#         max_digits=5,
+#         decimal_places=1
+#     )
+
+
 class History(models.Model):
     user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
     attraction = models.ForeignKey(Attraction, on_delete=models.CASCADE)
@@ -496,7 +662,6 @@ class Favorite(models.Model):
 class UserImage(models.Model):
     user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
     image = models.ForeignKey(ImageAsset, on_delete=models.CASCADE)
-
 
 
 def get_attraction_classes():
