@@ -50,7 +50,7 @@ class ImageAsset(models.Model):
         return data
 
     def landscape_thumb(self, width: int) -> 'ImageAsset':
-        if width > self.width:
+        if width > self.width and width > self.height:
             return self
 
         return self._create_thumb(
@@ -187,8 +187,13 @@ class ImageAsset(models.Model):
             log.info("%s images are missing thumbnails", len(missing))
             if missing:
                 for image in cls.objects.filter(id__in=missing):
-                    images[image.id] = image.landscape_thumb(thumb_size)
-                    images[image.id].parent = image
+                    thumb = image.landscape_thumb(thumb_size)
+                    images[image.id] = thumb
+
+                    if not thumb.id == image.id:
+                        images[image.id].parent = image
+                    else:
+                        log.warning(f"requested thumbnail of size {thumb_size} for image {image.id} and got same image")
         return images
 
 

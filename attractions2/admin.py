@@ -1,4 +1,5 @@
 # Register your models here.
+
 from django.contrib import admin
 
 from attractions2 import models, base_models
@@ -78,3 +79,24 @@ class GoogleUserAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.GoogleUser, GoogleUserAdmin)
+
+
+class PackageAdmin(admin.ModelAdmin):
+    pass
+
+
+admin.site.register(models.Package, PackageAdmin)
+
+
+class TourDestinationAdmin(admin.ModelAdmin):
+    pass
+
+
+admin.site.register(models.TourDestination, TourDestinationAdmin)
+
+
+class TourLanguageAdmin(admin.ModelAdmin):
+    pass
+
+
+admin.site.register(models.TourLanguage, TourLanguageAdmin)

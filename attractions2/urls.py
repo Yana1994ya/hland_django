@@ -25,6 +25,7 @@ urlpatterns = [
                   path("api/upload_image", api_views.upload_image),
                   path("api/map", api_views.map_attractions),
                   path("api/search", api_views.search),
+                  path("api/tours/availability/<int:tour_id>/<int:year>/<int:month>", api_views.availability),
                   # Admin display views
                   path("<model:model>", views.display, {"page_number": 1}, name="display"),
                   path("<model:model>/page<int:page_number>", views.display, name="display"),
@@ -37,4 +38,5 @@ urlpatterns = [
               views.EditWaterSports.urls() + \
               views.EditTrail.urls() + \
               views.EditExtremeSports.urls() + \
-              views.EditHotAir.urls()
+              views.EditHotAir.urls() + \
+              views.EditTour.urls()

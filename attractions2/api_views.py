@@ -5,7 +5,7 @@ import logging
 import tempfile
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from typing import Type, List, Dict
 
 import boto3
@@ -425,8 +425,8 @@ def upload_start(request):
         return HttpResponse("Trail has no name", status=http.client.BAD_REQUEST)
 
     difficulty = request.POST.get("difficulty", "")
-    if difficulty not in {"E", "M", "H"}:
-        return HttpResponse("Difficulty must be E, M or H", status=http.client.BAD_REQUEST)
+    if difficulty not in {"E", "N", "H"}:
+        return HttpResponse("Difficulty must be E, N or H", status=http.client.BAD_REQUEST)
 
     images = []
     image_ids_str = request.POST.get("images", "")
@@ -731,3 +731,43 @@ def search(request):
             "num_pages": paginator.num_pages
         }
     })
+
+
+@csrf_exempt
+def availability(request, tour_id: int, year: int, month: int):
+    if request.method == "POST":
+        json_body = json.loads(request.body)
+
+        if json_body["available"]:
+            models.TourAvailability.objects.get_or_create(
+                tour_id=tour_id,
+                day=date(year, month, json_body["day"])
+            )
+        else:
+            models.TourAvailability.objects.filter(
+                tour_id=tour_id,
+                day=date(year, month, json_body["day"])
+            ).delete()
+
+        return JsonResponse({
+            "status": "ok"
+        })
+    else:
+        days = []
+
+        if month == 12:
+            end_date = date(year + 1, 1, 1)
+        else:
+            end_date = date(year, month + 1, 1)
+
+        for available in models.TourAvailability.objects.filter(
+                tour_id=tour_id,
+                day__gte=date(year, month, 1),
+                day__lt=end_date
+        ).order_by("day"):
+            days.append(available.day.day)
+
+        return JsonResponse({
+            "status": "ok",
+            "days": days
+        })

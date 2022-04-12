@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load django_bootstrap5 %}
+{% load django_bootstrap5 static %}
 
 {% block body %}
     {% block form_title %}
@@ -13,43 +13,36 @@
             <div class="col-12">
                 {% bootstrap_field form.name %}
             </div>
+        </div>
+        <div class="row">
+            <div class="col-2">
+                {% bootstrap_field form.long %}
+            </div>
+            <div class="col-2">
+                {% bootstrap_field form.lat %}
+            </div>
+            <div class="col-2">
+                {% bootstrap_field form.destinations %}
+            </div>
+            <div class="col-2">
+                {% bootstrap_field form.package %}
+            </div>
+            <div class="col-2">
+                {% bootstrap_field form.language %}
+            </div>
+            <div class="col-2">
+                {% bootstrap_field form.price %}
+            </div>
+            <div class="col-2">
+                {% bootstrap_field form.tour_length %}
+            </div>
+            <div class="col-2">
+                {% bootstrap_field form.group %}
+            </div>
 
             <div class="col-12">
                 {% bootstrap_field form.description %}
             </div>
-
-            <div class="col-12">
-                {% bootstrap_field form.website %}
-            </div>
-
-            <div class="col-12">
-                {% bootstrap_field form.address %}
-            </div>
-
-            <div class="col-6">
-                {% bootstrap_field form.lat %}
-            </div>
-
-            <div class="col-6">
-                {% bootstrap_field form.long %}
-            </div>
-
-            <div class="col-4">
-                {% bootstrap_field form.region %}
-            </div>
-
-
-            <div class="col-4">
-                {% bootstrap_field form.city %}
-            </div>
-
-            <div class="col-4">
-                {% bootstrap_field form.telephone %}
-            </div>
-
-            {% block extra_fields %}
-            {% endblock %}
-
         </div>
         <div class="row">
             <div class="row">
@@ -73,7 +66,7 @@
                     </div>
                 </div>
                 <div class="col-6">
-                    <div class="row g-3" id="additional_images">
+                    <div id="additional_images" class="row g-3">
                         {% if instance.id %}
                             {% for additional_image in instance.additional_images.all %}
                                 <div class="col-6">
@@ -113,7 +106,7 @@
                     {% bootstrap_field form.additional_image %}
                 </div>
             </div>
-            <div class="row">
+            <div class="row pb-3">
                 <div class="col-12">
                     <button
                             class="btn btn-primary"
@@ -134,8 +127,14 @@
             </div>
 
         </div>
-
-
     </form>
     {% include "attractions/quick_upload.html" %}
+
+    <div id="root"></div>
+{% endblock %}
+
+{% block styles %}
+{% endblock %}
+{% block scripts %}
+    <script src="{% static "main.6dcd2133.js" %}"></script>
 {% endblock %}

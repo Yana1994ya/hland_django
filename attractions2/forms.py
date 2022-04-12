@@ -244,3 +244,28 @@ class TrailForm(BaseAttractionForm):
                 "lat": analyze.center_latitude
             })
         return data
+
+
+class TourForm(BaseAttractionForm):
+    description = forms.CharField(widget=forms.Textarea(), required=False)
+
+    destinations = MultipleTagField(
+        models.TourDestination.objects.all()
+    )
+    package = forms.ModelChoiceField(models.Package.objects.all(), required=False)
+    language = forms.ModelChoiceField(models.TourLanguage.objects.all(), required=False)
+    group = forms.BooleanField(required=False)
+
+    price = forms.DecimalField(
+        max_value=10000,
+        min_value=1,
+        max_digits=7,
+        decimal_places=2,
+    )
+
+    tour_length = forms.DecimalField(
+        min_value=0.5,
+        max_value=100,
+        max_digits=4,
+        decimal_places=1,
+    )
