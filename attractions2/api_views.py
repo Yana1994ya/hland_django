@@ -76,13 +76,13 @@ def query_set_to_json(qset):
 
     items = []
 
-    for item in attractions:
-        document = item.to_short_json
+    for attraction in attractions:
+        document = attraction.to_short_json
 
-        if item.main_image_id is None:
+        if attraction.main_image_id is None:
             document["main_image"] = None
         else:
-            document["main_image"] = images[item.main_image_id].to_json
+            document["main_image"] = images[attraction.main_image_id].to_json
 
         items.append(document)
 
@@ -97,7 +97,6 @@ def get_explore(request, model):
         "status": "ok",
         model.api_multiple_key(): query_set_to_json(
             _get_explore_qset(request, model, True)
-                .select_related(*model.short_related())
                 .order_by("name")
         )
     })

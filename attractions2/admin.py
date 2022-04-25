@@ -71,3 +71,10 @@ class ExtremeSportsTypeAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.ExtremeSportsType, ExtremeSportsTypeAdmin)
+
+
+class GoogleUserAdmin(admin.ModelAdmin):
+    pass
+
+
+admin.site.register(models.GoogleUser, GoogleUserAdmin)

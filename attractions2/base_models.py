@@ -353,12 +353,17 @@ class ManagedAttraction(Attraction):
 
     @classmethod
     def explore_filter(cls, qset, request):
-        # https://hollyland.iywebs.cloudns.ph/attractions/api/museums?region_id=4
+        # https://hollyland.iywebs.cloudns.ph/attractions/api/museums?region_id=4&region_id=2
         if "region_id" in request.GET:
             qset = qset.filter(region_id__in=list(map(
                 int,
                 request.GET.getlist("region_id"),
             )))
+        # SELECT "attractions2_attraction".*
+        # FROM "attractions2_winery"
+        # INNER JOIN "attractions2_attraction" ON ("attractions2_winery"."attraction_ptr_id" = "attractions2_attraction"."id")
+        # WHERE "attractions2_winery"."region_id" IN (2, 3)
+        # assert False, qset.query
 
         return qset
 
