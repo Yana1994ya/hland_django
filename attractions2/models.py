@@ -223,11 +223,11 @@ class RockClimbing(ManagedAttraction):
 class ExtremeSportsType(AttractionFilter):
     @classmethod
     def api_single_key(cls) -> str:
-        return "extreme_sport_type"
+        return "extreme_sports_type"
 
     @classmethod
     def api_multiple_key(cls) -> str:
-        return "extreme_sport_types"
+        return "extreme_sports_types"
 
 
 class ExtremeSports(ManagedAttraction):

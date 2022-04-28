@@ -305,6 +305,10 @@ def count_items(user_id: uuid.UUID, key: str) -> Dict[str, int]:
         .values("content_type__model") \
         .annotate(count=Count("id"))
 
+    # counts = [
+    #     {"content_type__model": "museum", "count": 1},
+    #     {"content_type__model": "zoo", "count": 2},
+    # ]
     counts = dict(map(lambda x: (x["content_type__model"], x["count"]), counts))
 
     results = {}
@@ -375,11 +379,6 @@ def favorites(request: UserRequest):
 
 @with_user_id
 def history_list(request: UserRequest, model):
-    result = []
-
-    for item in model.history(request.user_id):
-        result.append(item.to_short_json)
-
     return JsonResponse({
         "status": "ok",
         model.api_multiple_key(): query_set_to_json(
