@@ -272,30 +272,6 @@ def visit(request: UserRequest):
     })
 
 
-@with_user_id
-def visit_trail(request: UserRequest):
-    trail_id = request.data["id"]
-
-    now = datetime.utcnow().replace(tzinfo=pytz.UTC)
-
-    history_obj, created = models.TrailHistory.objects.get_or_create(
-        user_id=request.user_id,
-        trail=models.Trail.objects.get(id=trail_id),
-        defaults={
-            "created": now,
-            "last_visited": now
-        }
-    )
-
-    if not created:
-        history_obj.last_visited = now
-        history_obj.save()
-
-    return JsonResponse({
-        "status": "ok"
-    })
-
-
 def count_items(user_id: uuid.UUID, key: str) -> Dict[str, int]:
     attraction_filter = {
         key + "__user_id": user_id
@@ -310,12 +286,14 @@ def count_items(user_id: uuid.UUID, key: str) -> Dict[str, int]:
     #     {"content_type__model": "zoo", "count": 2},
     # ]
     counts = dict(map(lambda x: (x["content_type__model"], x["count"]), counts))
+    # counts = {"museum": 1, "zoo": 2}
 
     results = {}
 
     for model in models.get_attraction_classes():
         results[model.api_multiple_key()] = counts.get(model._meta.model_name, 0)
 
+    # results = {"museums": 1, "zoos": 2, "trails": 0, ...}
     return results
 
 
