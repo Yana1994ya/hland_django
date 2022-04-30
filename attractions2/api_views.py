@@ -32,7 +32,7 @@ def _get_attraction_filter_last_modified(request, model: Type[models.AttractionF
     return model.objects.latest("date_modified").date_modified
 
 
-# cache regions for 1 day
+# cache filters for 1 day
 @cache_page(60 * 60 * 24)
 @condition(last_modified_func=_get_attraction_filter_last_modified)
 def get_attraction_filter(request, model: Type[models.AttractionFilter]):
@@ -665,7 +665,7 @@ def add_comment(request: UserRequest):
         return JsonResponse({
             "status": "error",
             "code": "InvalidData",
-            "message": "Rating can't be more than 1"
+            "message": "Rating can't be more than 5"
         })
 
     comment = base_models.AttractionComment(
