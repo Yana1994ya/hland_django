@@ -2,6 +2,7 @@ import io
 import logging
 import tempfile
 import uuid
+from abc import ABC
 from os import path
 from typing import List, Optional, Set, Dict
 
@@ -184,10 +185,10 @@ class ImageAsset(models.Model):
 
             missing = image_ids - images.keys()
 
-            log.info("%s attractions are missing thumbnails", len(missing))
+            log.info("%s images are missing thumbnails", len(missing))
             if missing:
                 for image in cls.objects.filter(id__in=missing):
-                    images[image.id] = image.landscape_thumb(600)
+                    images[image.id] = image.landscape_thumb(thumb_size)
                     images[image.id].parent = image
         return images
 
@@ -321,12 +322,27 @@ class Attraction(models.Model):
         raise NotImplementedError("api_single_key not implemented")
 
     @classmethod
-    def explore_filter(cls, qset, request):
+    def explore_filter(cls, query_set, request):
         raise NotImplementedError("explore_filter not implemented")
 
     @property
     def to_short_json(self):
-        raise NotImplementedError("to_short_json not implemented")
+        try:
+            type_string = self.api_single_key()
+        except NotImplementedError:
+            # For generic attraction write type string based on the content type
+            type_string = self.content_type.model_class().api_single_key()
+
+        return {
+            "id": self.id,
+            "name": self.name,
+            "lat": self.lat,
+            "long": self.long,
+            "type": type_string,
+            # Transfer the rating as a string to avoid rounding errors
+            "avg_rating": str(self.avg_rating),
+            "rating_count": self.rating_count
+        }
 
     @property
     def to_json(self):
@@ -336,7 +352,7 @@ class Attraction(models.Model):
         return self.name
 
 
-class ManagedAttraction(Attraction):
+class ManagedAttraction(Attraction, ABC):
     description = models.TextField(blank=True, null=True)
     website = models.URLField(blank=True, null=True)
 
@@ -352,20 +368,21 @@ class ManagedAttraction(Attraction):
         return ["region"]
 
     @classmethod
-    def explore_filter(cls, qset, request):
+    def explore_filter(cls, query_set, request):
         # https://hollyland.iywebs.cloudns.ph/attractions/api/museums?region_id=4&region_id=2
         if "region_id" in request.GET:
-            qset = qset.filter(region_id__in=list(map(
+            query_set = query_set.filter(region_id__in=list(map(
                 int,
                 request.GET.getlist("region_id"),
             )))
         # SELECT "attractions2_attraction".*
         # FROM "attractions2_winery"
-        # INNER JOIN "attractions2_attraction" ON ("attractions2_winery"."attraction_ptr_id" = "attractions2_attraction"."id")
+        # INNER JOIN "attractions2_attraction" ON
+        # ("attractions2_winery"."attraction_ptr_id" = "attractions2_attraction"."id")
         # WHERE "attractions2_winery"."region_id" IN (2, 3)
         # assert False, qset.query
 
-        return qset
+        return query_set
 
     @classmethod
     def short_query(cls):
@@ -375,20 +392,16 @@ class ManagedAttraction(Attraction):
 
     @property
     def to_short_json(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "lat": self.lat,
-            "long": self.long,
+        data = super(ManagedAttraction, self).to_short_json
+
+        data.update({
             "region": self.region.to_json,
             "address": self.address,
-            "type": self.api_single_key(),
             "city": self.city,
             "telephone": self.telephone,
-            # Transfer the rating as a string to avoid rounding errors
-            "avg_rating": str(self.avg_rating),
-            "rating_count": self.rating_count
-        }
+        })
+
+        return data
 
     @property
     def to_json(self):
