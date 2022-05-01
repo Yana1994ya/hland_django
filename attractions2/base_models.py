@@ -217,7 +217,6 @@ class AttractionFilter(models.Model):
 
 
 class Region(AttractionFilter):
-
     @classmethod
     def api_multiple_key(cls) -> str:
         return "regions"
@@ -441,10 +440,11 @@ class AttractionComment(models.Model):
     @property
     def to_json(self):
         return {
+            "id": self.id,
             "user": self.user.to_json,
             "rating": self.rating,
             "text": self.text,
-            "created": self.created.isoformat("T")
+            "created": self.created.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
     @property

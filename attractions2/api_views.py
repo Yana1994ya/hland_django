@@ -690,18 +690,13 @@ def get_comments(_request, attraction_id: int, page_number: int) -> JsonResponse
 
     result = []
     for comment in page.object_list:
-        comment_json = {
-            "id": comment.id,
-            "user": comment.user.to_json,
-            "rating": comment.rating,
-            "text": comment.text,
-            "created": comment.created.strftime("%Y-%m-%d %H:%M:%S"),
-            "images": []
-        }
+        comment_json = comment.to_json
+        images = []
 
         for image in comment.images.all():
-            comment_json["images"].append(thumbs[image.id].to_json)
+            images.append(thumbs[image.id].to_json)
 
+        comment_json["images"] = images
         result.append(comment_json)
 
     return JsonResponse({

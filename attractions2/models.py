@@ -78,10 +78,6 @@ class OffRoadTripType(AttractionFilter):
     def api_multiple_key(cls) -> str:
         return "offroad_trip_types"
 
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "trip_type"
-
     class Meta:
         verbose_name_plural = "Off-Road Trip Types"
 
@@ -125,10 +121,6 @@ class OffRoad(ManagedAttraction):
 
 
 class WaterSportsAttractionType(AttractionFilter):
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "water_sports_attraction_type"
-
     @classmethod
     def api_multiple_key(cls) -> str:
         return "water_sports_attraction_types"
@@ -174,10 +166,6 @@ class WaterSports(ManagedAttraction):
 
 class RockClimbingType(AttractionFilter):
     @classmethod
-    def api_single_key(cls) -> str:
-        return "rock_climbing_type"
-
-    @classmethod
     def api_multiple_key(cls) -> str:
         return "rock_climbing_types"
 
@@ -221,10 +209,6 @@ class RockClimbing(ManagedAttraction):
 
 
 class ExtremeSportsType(AttractionFilter):
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "extreme_sports_type"
-
     @classmethod
     def api_multiple_key(cls) -> str:
         return "extreme_sports_types"
@@ -285,14 +269,9 @@ class TrailDifficulty(models.TextChoices):
 
 
 class TrailSuitability(AttractionFilter):
-
     @classmethod
     def api_multiple_key(cls) -> str:
         return "trail_suitabilities"
-
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "trail_suitability"
 
     class Meta:
         verbose_name_plural = "Trail Suitabilities"
@@ -303,23 +282,14 @@ class TrailAttraction(AttractionFilter):
     def api_multiple_key(cls) -> str:
         return "trail_attractions"
 
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "trail_attraction"
-
     class Meta:
         verbose_name_plural = "Trail Attractions"
 
 
 class TrailActivity(AttractionFilter):
-
     @classmethod
     def api_multiple_key(cls) -> str:
         return "trail_activities"
-
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "trail_activity"
 
     class Meta:
         verbose_name_plural = "Trail Activities"
