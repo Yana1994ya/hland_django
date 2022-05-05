@@ -2,7 +2,6 @@ import io
 import logging
 import tempfile
 import uuid
-from abc import ABC
 from os import path
 from typing import List, Optional, Set, Dict
 
@@ -351,7 +350,7 @@ class Attraction(models.Model):
         return self.name
 
 
-class ManagedAttraction(Attraction, ABC):
+class ManagedAttraction(Attraction):
     description = models.TextField(blank=True, null=True)
     website = models.URLField(blank=True, null=True)
 
@@ -412,6 +411,14 @@ class ManagedAttraction(Attraction, ABC):
         })
 
         return json_result
+
+    @classmethod
+    def api_multiple_key(cls) -> str:
+        raise NotImplementedError("api_multiple_key not implemented")
+
+    @classmethod
+    def api_single_key(cls) -> str:
+        raise NotImplementedError("api_single_key not implemented")
 
     class Meta:
         abstract = True
