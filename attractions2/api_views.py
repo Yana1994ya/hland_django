@@ -16,7 +16,7 @@ from PIL import ExifTags, Image
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Sum
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.cache import cache_control, cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt
@@ -771,3 +771,89 @@ def availability(request, tour_id: int, year: int, month: int):
             "status": "ok",
             "days": days
         })
+
+
+def available(request, tour_id: int, year: int, month: int):
+    days = []
+
+    if month == 12:
+        end_date = date(year + 1, 1, 1)
+    else:
+        end_date = date(year, month + 1, 1)
+
+    for available in models.TourAvailability.objects.filter(
+            tour_id=tour_id,
+            day__gte=date(year, month, 1),
+            day__lt=end_date,
+    ).order_by("day"):
+        days.append(available.day)
+
+    # Remove all the dates that are already reserved
+    for row in models.TourReservation.objects.filter(
+            tour_id=tour_id,
+            day__in=days
+    ).values("day").annotate(reservations=Sum("id")):
+        if row["reservations"] > 0:
+            days.remove(row["day"])
+
+    return JsonResponse({
+        "status": "ok",
+        "days": list(map(
+            lambda date: date.day,
+            days
+        ))
+    })
+
+
+@with_user_id
+def tour_reserve(user_request: UserRequest):
+    try:
+        tour = models.Tour.objects.get(pk=user_request.data.get("tour_id"))
+    except models.Tour.DoesNotExist:
+        resp = JsonResponse({
+            "status": "error",
+            "code": "NotFound",
+            "message": "The requested tour doesn't exist"
+        })
+
+        resp.status_code = 404
+        return resp
+
+    reservation = models.TourReservation()
+    reservation.tour = tour
+    reservation.user_id = user_request.user_id
+
+    try:
+        reservation.day = datetime.strptime(user_request.data.get("date"), '%Y/%m/%d').date()
+    except ValueError:
+        resp = JsonResponse({
+            "status": "error",
+            "code": "InvalidDate",
+            "message": "Date is invalid"
+        })
+
+        resp.status_code = 400
+        return resp
+
+    reservation.phone_number = user_request.data.get("phone")
+    reservation.name = user_request.data.get("name")
+    reservation.price = tour.price
+    reservation.group = tour.group
+
+    reservation.save()
+
+    return JsonResponse({
+        "status": "ok",
+        "reservation": reservation.id
+    })
+
+
+@with_user_id
+def tour_reservations(request: UserRequest):
+    return JsonResponse({
+        "status": "ok",
+        "reservations": list(map(
+            lambda reservation: reservation.to_json,
+            models.TourReservation.objects.filter(user__id=request.user_id).select_related("tour").order_by("day")
+        ))
+    })

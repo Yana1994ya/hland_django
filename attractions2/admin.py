@@ -100,3 +100,22 @@ class TourLanguageAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.TourLanguage, TourLanguageAdmin)
+
+
+class TourReservationAdmin(admin.ModelAdmin):
+    list_select_related = (
+        'tour',
+        'tour__package',
+        'user',
+    )
+
+    list_display = (
+        'user_name',
+        'user_email',
+        'tour_name',
+        'price',
+        'group'
+    )
+
+
+admin.site.register(models.TourReservation, TourReservationAdmin)

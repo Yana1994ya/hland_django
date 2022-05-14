@@ -574,10 +574,40 @@ class TourReservation(models.Model):
     day = models.DateField()
     user = models.ForeignKey(GoogleUser, on_delete=models.CASCADE)
 
-    first_name = models.CharField(max_length=200)
-    last_name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200)
     phone_number = models.CharField(max_length=20)
     payment_confirmation_id = models.CharField(max_length=50)
+
+    group = models.BooleanField(default=False, blank=True)
+
+    price = models.DecimalField(
+        max_digits=9,
+        decimal_places=2
+    )
+
+    @property
+    def user_email(self) -> str:
+        return self.user.email
+
+    @property
+    def user_name(self) -> str:
+        return self.user.email
+
+    @property
+    def tour_name(self) -> str:
+        return self.tour.name
+
+    @property
+    def to_json(self):
+        return {
+            "id": self.id,
+            "tour": self.tour.to_short_json,
+            "day": self.day.strftime("%Y/%m/%d"),
+            "name": self.name,
+            "phone_number": self.phone_number,
+            "price": str(self.price),
+            "group": self.group,
+        }
 
 
 class History(models.Model):
