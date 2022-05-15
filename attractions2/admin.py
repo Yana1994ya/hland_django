@@ -114,7 +114,8 @@ class TourReservationAdmin(admin.ModelAdmin):
         'user_email',
         'tour_name',
         'price',
-        'group'
+        'group',
+        'tour_package'
     )
 
 

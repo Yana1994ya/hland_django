@@ -598,6 +598,13 @@ class TourReservation(models.Model):
         return self.tour.name
 
     @property
+    def tour_package(self) -> str:
+        if self.tour.package is None:
+            return "Not set"
+        else:
+            return self.tour.package.name
+
+    @property
     def to_json(self):
         return {
             "id": self.id,
