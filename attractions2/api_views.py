@@ -390,7 +390,9 @@ def map_attractions(request):
     ).select_related("content_type")
 
     if request.GET.get("objects") == "attractions":
-        query_set = query_set.exclude(content_type=ContentType.objects.get_for_model(models.Trail))
+        query_set = query_set \
+            .exclude(content_type=ContentType.objects.get_for_model(models.Trail)) \
+            .exclude(content_type=ContentType.objects.get_for_model(models.Tour))
     elif request.GET.get("objects") == "trails":
         query_set = query_set.filter(content_type=ContentType.objects.get_for_model(models.Trail))
 
