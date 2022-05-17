@@ -28,14 +28,14 @@ from attractions2.trail import analyze_trail, FileEmpty
 log = logging.getLogger(__name__)
 
 
-def _get_attraction_filter_last_modified(request, model: Type[models.AttractionFilter]):
+def _get_attraction_filter_last_modified(_request, model: Type[models.AttractionFilter]):
     return model.objects.latest("date_modified").date_modified
 
 
-# cache regions for 1 day
+# cache filters for 1 day
 @cache_page(60 * 60 * 24)
 @condition(last_modified_func=_get_attraction_filter_last_modified)
-def get_attraction_filter(request, model: Type[models.AttractionFilter]):
+def get_attraction_filter(_request, model: Type[models.AttractionFilter]):
     return JsonResponse({
         "status": "ok",
         model.api_multiple_key(): list(map(
@@ -45,24 +45,8 @@ def get_attraction_filter(request, model: Type[models.AttractionFilter]):
     })
 
 
-def _get_explore_qset(request, model, short: bool):
-    if short:
-        qset = model.short_query()
-    else:
-        qset = model.objects.all()
-
-    return model.explore_filter(qset, request)
-
-
-def _get_explore_last_modified(request, model):
-    try:
-        return _get_explore_qset(request, model, False).latest("date_modified").date_modified
-    except model.DoesNotExist:
-        return None
-
-
-def query_set_to_json(qset):
-    attractions = list(qset)
+def _query_set_to_json(query_set):
+    attractions = list(query_set)
 
     image_ids = set(map(
         lambda x: x.main_image_id,
@@ -76,17 +60,33 @@ def query_set_to_json(qset):
 
     items = []
 
-    for item in attractions:
-        document = item.to_short_json
+    for attraction in attractions:
+        document = attraction.to_short_json
 
-        if item.main_image_id is None:
+        if attraction.main_image_id is None:
             document["main_image"] = None
         else:
-            document["main_image"] = images[item.main_image_id].to_json
+            document["main_image"] = images[attraction.main_image_id].to_json
 
         items.append(document)
 
     return items
+
+
+def _get_explore_query_set(request, model, short: bool):
+    if short:
+        query_set = model.short_query()
+    else:
+        query_set = model.objects.all()
+
+    return model.explore_filter(query_set, request)
+
+
+def _get_explore_last_modified(request, model):
+    try:
+        return _get_explore_query_set(request, model, False).latest("date_modified").date_modified
+    except model.DoesNotExist:
+        return None
 
 
 # cache explore for 2 hours
@@ -95,15 +95,13 @@ def query_set_to_json(qset):
 def get_explore(request, model):
     return JsonResponse({
         "status": "ok",
-        model.api_multiple_key(): query_set_to_json(
-            _get_explore_qset(request, model, True)
-                .select_related(*model.short_related())
-                .order_by("name")
+        model.api_multiple_key(): _query_set_to_json(
+            _get_explore_query_set(request, model, True).order_by("name")
         )
     })
 
 
-def _get_single_last_modified(request, model, attraction_id: int):
+def _get_single_last_modified(_request, model, attraction_id: int):
     try:
         return model.objects.get(id=attraction_id).date_modified
     except model.DoesNotExist:
@@ -113,7 +111,7 @@ def _get_single_last_modified(request, model, attraction_id: int):
 # cache single for 2 hours
 @cache_control(public=True, max_age=60 * 60 * 2)
 @condition(last_modified_func=_get_single_last_modified)
-def get_single(request, model, attraction_id: int):
+def get_single(_request, model, attraction_id: int):
     try:
         single = model.objects.get(id=attraction_id)
         document = single.to_json
@@ -273,30 +271,6 @@ def visit(request: UserRequest):
     })
 
 
-@with_user_id
-def visit_trail(request: UserRequest):
-    trail_id = request.data["id"]
-
-    now = datetime.utcnow().replace(tzinfo=pytz.UTC)
-
-    history_obj, created = models.TrailHistory.objects.get_or_create(
-        user_id=request.user_id,
-        trail=models.Trail.objects.get(id=trail_id),
-        defaults={
-            "created": now,
-            "last_visited": now
-        }
-    )
-
-    if not created:
-        history_obj.last_visited = now
-        history_obj.save()
-
-    return JsonResponse({
-        "status": "ok"
-    })
-
-
 def count_items(user_id: uuid.UUID, key: str) -> Dict[str, int]:
     attraction_filter = {
         key + "__user_id": user_id
@@ -306,13 +280,19 @@ def count_items(user_id: uuid.UUID, key: str) -> Dict[str, int]:
         .values("content_type__model") \
         .annotate(count=Count("id"))
 
+    # counts = [
+    #     {"content_type__model": "museum", "count": 1},
+    #     {"content_type__model": "zoo", "count": 2},
+    # ]
     counts = dict(map(lambda x: (x["content_type__model"], x["count"]), counts))
+    # counts = {"museum": 1, "zoo": 2}
 
     results = {}
 
     for model in models.get_attraction_classes():
         results[model.api_multiple_key()] = counts.get(model._meta.model_name, 0)
 
+    # results = {"museums": 1, "zoos": 2, "trails": 0, ...}
     return results
 
 
@@ -376,14 +356,9 @@ def favorites(request: UserRequest):
 
 @with_user_id
 def history_list(request: UserRequest, model):
-    result = []
-
-    for item in model.history(request.user_id):
-        result.append(item.to_short_json)
-
     return JsonResponse({
         "status": "ok",
-        model.api_multiple_key(): query_set_to_json(
+        model.api_multiple_key(): _query_set_to_json(
             model.history(request.user_id)
         )
     })
@@ -393,7 +368,7 @@ def history_list(request: UserRequest, model):
 def favorites_list(request: UserRequest, model):
     return JsonResponse({
         "status": "ok",
-        model.api_multiple_key(): query_set_to_json(
+        model.api_multiple_key(): _query_set_to_json(
             model.favorite(request.user_id)
         )
     })
@@ -406,53 +381,22 @@ def map_attractions(request):
     lat_min = float(request.GET["lat_min"])
     lat_max = float(request.GET["lat_max"])
 
-    qset = models.Attraction.objects.filter(
+    query_set = models.Attraction.objects.filter(
         long__gte=lon_min,
         long__lte=lon_max,
         lat__gte=lat_min,
         lat__lte=lat_max,
         content_type__isnull=False
-    )
+    ).select_related("content_type")
 
     if request.GET.get("objects") == "attractions":
-        qset = qset.exclude(content_type=ContentType.objects.get_for_model(models.Trail))
+        query_set = query_set.exclude(content_type=ContentType.objects.get_for_model(models.Trail))
     elif request.GET.get("objects") == "trails":
-        qset = qset.filter(content_type=ContentType.objects.get_for_model(models.Trail))
-
-    attractions = list(qset.select_related("content_type"))
-
-    image_ids = set(map(
-        lambda x: x.main_image_id,
-        filter(
-            lambda x: x.main_image_id is not None,
-            attractions
-        )
-    ))
-
-    images = models.ImageAsset.resolve_thumbs(image_ids, 600)
-
-    result = []
-    for attraction in attractions:
-        json_doc = {
-            "id": attraction.id,
-            "name": attraction.name,
-            "long": attraction.long,
-            "lat": attraction.lat,
-            "type": attraction.content_type.model_class().api_single_key(),
-            "avg_rating": attraction.avg_rating,
-            "rating_count": attraction.rating_count
-        }
-
-        if attraction.main_image_id is None:
-            json_doc["main_image"] = None
-        else:
-            json_doc["main_image"] = images[attraction.main_image_id].to_json
-
-        result.append(json_doc)
+        query_set = query_set.filter(content_type=ContentType.objects.get_for_model(models.Trail))
 
     return JsonResponse({
         "status": "ok",
-        "attractions": result
+        "attractions": _query_set_to_json(query_set)
     })
 
 
@@ -689,7 +633,7 @@ def add_comment(request: UserRequest):
         return JsonResponse({
             "status": "error",
             "code": "InvalidData",
-            "message": "Rating can't be more than 1"
+            "message": "Rating can't be more than 5"
         })
 
     comment = base_models.AttractionComment(
@@ -698,10 +642,12 @@ def add_comment(request: UserRequest):
         text=comment_text,
         rating=rating
     )
+
     comment.save()
 
     if "image_ids" in request.data:
         image_ids = request.data["image_ids"]
+
         for image in models.ImageAsset.objects.filter(id__in=image_ids, userimage__user_id=request.user_id):
             comment.images.add(image)
 
@@ -721,15 +667,14 @@ def add_comment(request: UserRequest):
     })
 
 
+@cache_control(public=True, max_age=60 * 60 * 2)
 def get_comments(_request, attraction_id: int, page_number: int) -> JsonResponse:
-    qset = base_models.AttractionComment.objects.filter(
+    query_set = base_models.AttractionComment.objects.filter(
         attraction_id=attraction_id
     )
 
     paginator = Paginator(
-        qset.order_by("-created")
-            .select_related("user")
-            .prefetch_related("images"),
+        query_set.order_by("-created").select_related("user").prefetch_related("images"),
         30
     )
 
@@ -741,31 +686,17 @@ def get_comments(_request, attraction_id: int, page_number: int) -> JsonResponse
         for image in comment.images.all():
             image_ids.add(image.id)
 
-    thumbs = {}
-    for thumb in models.ImageAsset.objects.filter(parent__id__in=image_ids, request_width=64, request_height=64):
-        thumbs[thumb.parent_id] = thumb
+    thumbs = models.ImageAsset.resolve_thumbs(image_ids, 64)
 
     result = []
     for comment in page.object_list:
-        comment_json = {
-            "id": comment.id,
-            "user": comment.user.to_json,
-            "rating": comment.rating,
-            "text": comment.text,
-            "created": comment.created.strftime("%Y-%m-%d %H:%M:%S"),
-            "images": []
-        }
+        comment_json = comment.to_json
+        images = []
 
         for image in comment.images.all():
-            if image.id not in thumbs:
-                thumb = image.landscape_thumb(64)
-            else:
-                thumb = thumbs[image.id]
+            images.append(thumbs[image.id].to_json)
 
-            thumb.parent = image
-
-            comment_json["images"].append(thumb.to_json)
-
+        comment_json["images"] = images
         result.append(comment_json)
 
     return JsonResponse({
@@ -778,6 +709,7 @@ def get_comments(_request, attraction_id: int, page_number: int) -> JsonResponse
     })
 
 
+@cache_control(public=True, max_age=60 * 60 * 2)
 def search(request):
     q = request.GET.get("q", "")
     page_number = 1
@@ -786,45 +718,16 @@ def search(request):
         page_number = int(request.GET["page"])
 
     paginator = Paginator(
-        models.Attraction.objects.filter(name__icontains=q)
-            .select_related("content_type"),
+        models.Attraction.objects.filter(name__icontains=q).select_related("content_type"),
         30
     )
 
     page = paginator.page(page_number)
-    # Load the thumbs in an efficient manner so many comments don't bring the application to a crawl
-    image_ids = set()
-
-    for item in page.object_list:
-        if item.main_image_id is not None:
-            image_ids.add(item.main_image_id)
-
-    images = models.ImageAsset.resolve_thumbs(image_ids, 600)
-
-    items = []
-
-    for attraction in page.object_list:
-        document = {
-            "id": attraction.id,
-            "name": attraction.name,
-            "long": attraction.long,
-            "lat": attraction.lat,
-            "type": attraction.content_type.model_class().api_single_key(),
-            "avg_rating": attraction.avg_rating,
-            "rating_count": attraction.rating_count
-        }
-
-        if attraction.main_image_id is None:
-            document["main_image"] = None
-        else:
-            document["main_image"] = images[attraction.main_image_id].to_json
-
-        items.append(document)
 
     return JsonResponse({
         "status": "ok",
         "page": {
-            "items": items,
+            "items": _query_set_to_json(page.object_list),
             "num_pages": paginator.num_pages
         }
     })
