@@ -22,7 +22,6 @@ WORKDIR /root/project
 COPY --from=0 /root/project/.virtualenv .virtualenv
 COPY --from=0 /root/project/.virtualenv_path .virtualenv_path
 COPY hland hland
-COPY market_review market_review
 COPY attractions2 attractions2
 COPY manage.py manage.py
 COPY deployment/settings.dev.py hland/settings.py
@@ -41,7 +40,6 @@ WORKDIR /root/project
 COPY --from=0 /root/project/.virtualenv .virtualenv
 COPY --from=0 /root/project/.virtualenv_path .virtualenv_path
 COPY hland hland
-COPY market_review market_review
 COPY attractions2 attractions2
 COPY manage.py manage.py
 COPY templates templates

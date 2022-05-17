@@ -40,17 +40,17 @@ class Museum(ManagedAttraction):
         return "museum"
 
     @classmethod
-    def explore_filter(cls, qset, request):
+    def explore_filter(cls, query_set, request):
         # https://hollyland.iywebs.cloudns.ph/attractions/api/museums?region_id=4&domain_id=1
-        qset = super().explore_filter(qset, request)
+        query_set = super().explore_filter(query_set, request)
 
         if "domain_id" in request.GET:
-            qset = qset.filter(domain_id__in=list(map(
+            query_set = query_set.filter(domain_id__in=list(map(
                 int,
                 request.GET.getlist("domain_id"),
             )))
 
-        return qset
+        return query_set
 
 
 class Winery(ManagedAttraction):
@@ -77,10 +77,6 @@ class OffRoadTripType(AttractionFilter):
     @classmethod
     def api_multiple_key(cls) -> str:
         return "offroad_trip_types"
-
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "trip_type"
 
     class Meta:
         verbose_name_plural = "Off-Road Trip Types"
@@ -112,23 +108,19 @@ class OffRoad(ManagedAttraction):
         return result
 
     @classmethod
-    def explore_filter(cls, qset, request):
-        qset = super().explore_filter(qset, request)
+    def explore_filter(cls, query_set, request):
+        query_set = super().explore_filter(query_set, request)
 
         if "trip_type_id" in request.GET:
-            qset = qset.filter(trip_type_id__in=list(map(
+            query_set = query_set.filter(trip_type_id__in=list(map(
                 int,
                 request.GET.getlist("trip_type_id"),
             )))
 
-        return qset
+        return query_set
 
 
 class WaterSportsAttractionType(AttractionFilter):
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "water_sports_attraction_type"
-
     @classmethod
     def api_multiple_key(cls) -> str:
         return "water_sports_attraction_types"
@@ -160,23 +152,19 @@ class WaterSports(ManagedAttraction):
         return result
 
     @classmethod
-    def explore_filter(cls, qset, request):
-        qset = super().explore_filter(qset, request)
+    def explore_filter(cls, query_set, request):
+        query_set = super().explore_filter(query_set, request)
 
         if "attraction_type_id" in request.GET:
-            qset = qset.filter(attraction_type_id__in=list(map(
+            query_set = query_set.filter(attraction_type_id__in=list(map(
                 int,
                 request.GET.getlist("attraction_type_id"),
             )))
 
-        return qset
+        return query_set
 
 
 class RockClimbingType(AttractionFilter):
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "rock_climbing_type"
-
     @classmethod
     def api_multiple_key(cls) -> str:
         return "rock_climbing_types"
@@ -208,30 +196,26 @@ class RockClimbing(ManagedAttraction):
         return result
 
     @classmethod
-    def explore_filter(cls, qset, request):
-        qset = super().explore_filter(qset, request)
+    def explore_filter(cls, query_set, request):
+        query_set = super().explore_filter(query_set, request)
 
         if "attraction_type_id" in request.GET:
-            qset = qset.filter(attraction_type_id__in=list(map(
+            query_set = query_set.filter(attraction_type_id__in=list(map(
                 int,
                 request.GET.getlist("attraction_type_id"),
             )))
 
-        return qset
+        return query_set
 
 
 class ExtremeSportsType(AttractionFilter):
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "extreme_sports_type"
-
     @classmethod
     def api_multiple_key(cls) -> str:
         return "extreme_sports_types"
 
 
 class ExtremeSports(ManagedAttraction):
-    sport_type = models.ForeignKey(ExtremeSportsType(), on_delete=models.CASCADE)
+    sport_type = models.ForeignKey(ExtremeSportsType, on_delete=models.CASCADE)
 
     @classmethod
     def api_multiple_key(cls) -> str:
@@ -256,16 +240,16 @@ class ExtremeSports(ManagedAttraction):
         return result
 
     @classmethod
-    def explore_filter(cls, qset, request):
-        qset = super().explore_filter(qset, request)
+    def explore_filter(cls, query_set, request):
+        query_set = super().explore_filter(query_set, request)
 
         if "sport_type_id" in request.GET:
-            qset = qset.filter(sport_type_id__in=list(map(
+            query_set = query_set.filter(sport_type_id__in=list(map(
                 int,
                 request.GET.getlist("sport_type_id"),
             )))
 
-        return qset
+        return query_set
 
 
 class HotAir(ManagedAttraction):
@@ -285,14 +269,9 @@ class TrailDifficulty(models.TextChoices):
 
 
 class TrailSuitability(AttractionFilter):
-
     @classmethod
     def api_multiple_key(cls) -> str:
         return "trail_suitabilities"
-
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "trail_suitability"
 
     class Meta:
         verbose_name_plural = "Trail Suitabilities"
@@ -303,23 +282,14 @@ class TrailAttraction(AttractionFilter):
     def api_multiple_key(cls) -> str:
         return "trail_attractions"
 
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "trail_attraction"
-
     class Meta:
         verbose_name_plural = "Trail Attractions"
 
 
 class TrailActivity(AttractionFilter):
-
     @classmethod
     def api_multiple_key(cls) -> str:
         return "trail_activities"
-
-    @classmethod
-    def api_single_key(cls) -> str:
-        return "trail_activity"
 
     class Meta:
         verbose_name_plural = "Trail Activities"
@@ -331,9 +301,7 @@ class Trail(Attraction):
         return []
 
     @classmethod
-    def explore_filter(cls, qset, request):
-        query_set = cls.objects.all()
-
+    def explore_filter(cls, query_set, request):
         if "length_start" in request.GET:
             query_set = query_set.filter(length__gte=int(request.GET["length_start"]))
 
@@ -415,19 +383,14 @@ class Trail(Attraction):
 
     @property
     def to_short_json(self):
-        json_result = {
-            "id": self.id,
-            "name": self.name,
-            "lat": self.lat,
-            "long": self.long,
-            "type": self.api_single_key(),
+        json_result = super(Trail, self).to_short_json
+
+        json_result.update({
             "difficulty": self.difficulty,
             "length": self.length,
             "elevation_gain": self.elv_gain,
             "owner_id": str(self.owner_id),
-            "avg_rating": str(self.avg_rating),
-            "rating_count": self.rating_count
-        }
+        })
 
         return json_result
 
@@ -681,12 +644,14 @@ def _generate_regex() -> str:
 class AttractionModelConverter:
     regex = _generate_regex()
 
-    def to_python(self, value: str) -> Type[Attraction]:
+    @staticmethod
+    def to_python(value: str) -> Type[Attraction]:
         for subclass in get_attraction_classes():
             if value == subclass.api_multiple_key():
                 return subclass
 
-    def to_url(self, value: Union[str, Type[Attraction]]):
+    @staticmethod
+    def to_url(value: Union[str, Type[Attraction]]):
         if isinstance(value, str):
             return value
         return value.api_multiple_key()
@@ -703,10 +668,12 @@ def _generate_filter_regex() -> str:
 class FilterModelConverter:
     regex = _generate_filter_regex()
 
-    def to_python(self, value: str) -> Type[AttractionFilter]:
+    @staticmethod
+    def to_python(value: str) -> Type[AttractionFilter]:
         for subclass in AttractionFilter.__subclasses__():
             if value == subclass.api_multiple_key():
                 return subclass
 
-    def to_url(self, value: Type[Attraction]):
+    @staticmethod
+    def to_url(value: Type[Attraction]):
         return value.api_multiple_key()
