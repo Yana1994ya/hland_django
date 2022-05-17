@@ -1,0 +1,12 @@
+<div style="margin-left: 175px">
+    {% if image %}
+        <div><img src="{{ image.url }}" width="600" alt="{{ name }}"/></div>
+        <div><label style="float:none;">
+            <input type="checkbox" name="{{ name }}_delete" value="on"/> delete
+        </label></div>
+        <input type="hidden" name="{{ name }}_current" value="{{ image.id }}"/>
+    {% endif %}
+    <div>
+        <input type="file" name="{{ name }}" accept="image/*"/>
+    </div>
+</div>

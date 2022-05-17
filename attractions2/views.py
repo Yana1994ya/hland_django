@@ -240,6 +240,41 @@ class EditHotAir(ManagedEditView):
         return "attractions/edit_hot_air.html"
 
 
+class EditTour(EditView):
+    form_class = forms.TourForm
+    model = models.Tour
+
+    def success_message(self, instance: models.Tour) -> str:
+        return f"Tour {instance.name} was saved successfully"
+
+    def get_initial(self, instance: models.Tour) -> dict:
+        initial = super().get_initial(instance)
+
+        if instance.id is not None:
+            initial["destinations"] = instance.destinations.all()
+            initial["package"] = instance.package
+            initial["language"] = instance.language
+            initial["price"] = instance.price
+            initial["tour_length"] = instance.tour_length
+            initial["description"] = instance.description
+            initial["group"] = instance.group
+
+        return initial
+
+    def update_instance(self, instance: models.Tour, cleaned_data: dict):
+        super().update_instance(instance, cleaned_data)
+
+        instance.package = cleaned_data["package"]
+        instance.language = cleaned_data["language"]
+        instance.price = cleaned_data["price"]
+        instance.tour_length = cleaned_data["tour_length"]
+        instance.description = cleaned_data["description"]
+        instance.group = cleaned_data["group"]
+
+    def handle_m2m(self, instance: models.Tour, cleaned_data: dict) -> NoReturn:
+        instance.destinations.set(cleaned_data["destinations"], clear=True)
+
+
 @staff_member_required
 @csrf_exempt
 def attraction_upload(request, attraction_id: int):

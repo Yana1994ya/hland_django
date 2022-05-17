@@ -1,0 +1,13 @@
+.day_picker {
+
+}
+
+.day_picker button.active {
+    background-color: #61dafb;
+}
+
+.day_picker .week > td {
+    width: 32px;
+    height: 22px;
+    text-align: center;
+}
