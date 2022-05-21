@@ -276,6 +276,8 @@ def count_items(user_id: uuid.UUID, key: str) -> Dict[str, int]:
         key + "__user_id": user_id
     }
 
+    # for key == "history" this is equivalent to:
+    # counts = models.Attraction.objects.filter(history__user_id=user_id)
     counts = models.Attraction.objects.filter(**attraction_filter) \
         .values("content_type__model") \
         .annotate(count=Count("id"))
