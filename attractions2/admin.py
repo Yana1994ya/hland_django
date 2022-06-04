@@ -71,3 +71,17 @@ class ExtremeSportsTypeAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.ExtremeSportsType, ExtremeSportsTypeAdmin)
+
+
+class RegionAdmin(admin.ModelAdmin):
+    pass
+
+
+admin.site.register(base_models.Region, RegionAdmin)
+
+
+class MuseumDomainAdmin(admin.ModelAdmin):
+    pass
+
+
+admin.site.register(models.MuseumDomain, MuseumDomainAdmin)
