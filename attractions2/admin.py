@@ -1,5 +1,3 @@
-# Register your models here.
-
 from django.contrib import admin
 
 from attractions2 import models, base_models
