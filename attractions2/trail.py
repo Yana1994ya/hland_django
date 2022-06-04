@@ -3,12 +3,13 @@ import dataclasses
 import gzip
 import math
 import statistics
-from typing import List
+from typing import List, Optional
 
 # Avoid giving significant weight to individual point in
 # elevation gain calculation, because, from experience, altitude is
 # much less accurate than latitude or longitude
-ALTITUDE_COMPARE_POINTS = 30
+ALTITUDE_COMPARE_POINTS = 20
+HEIGHT_THRESHOLD = 5.0
 
 
 class FileEmpty(Exception):
@@ -47,23 +48,33 @@ def _get_distance(point1, point2):
 
 
 def _calculate_gain(points: List[SinglePoint]) -> float:
-    elv_gain = 0
+    elv_gain = 0.0  # type: float
     last_elv_points = []  # type: List[float]
-    last_elv_avg = None
+    last_elv_avg = None  # type: Optional[float]
 
     for point in points:
+        # Add the current altitude to the list of altitudes
+        last_elv_points.append(point.altitude)
+
+        # If we keep more than ALTITUDE_COMPARE_POINTS points, clear the first one
+        if len(last_elv_points) > ALTITUDE_COMPARE_POINTS:
+            del last_elv_points[0]
+
+        # Only count elevation gain if there are at least (ALTITUDE_COMPARE_POINTS / 2)
+        # points
         if len(last_elv_points) > ALTITUDE_COMPARE_POINTS / 2:
             elv_avg = statistics.mean(last_elv_points)
 
-            if last_elv_avg is not None and elv_avg > last_elv_avg:
-                elv_gain += elv_avg - last_elv_avg
+            if last_elv_avg is None:
+                last_elv_avg = elv_avg
+            else:
+                # Only consider a change in elevation gain, if the elevation the past avg point
+                # and the current one exceeds HEIGHT_THRESHOLD
+                if abs(elv_avg - last_elv_avg) > HEIGHT_THRESHOLD:
+                    if elv_avg > last_elv_avg:
+                        elv_gain += elv_avg - last_elv_avg
 
-            last_elv_avg = elv_avg
-
-        last_elv_points.append(point.altitude)
-
-        if len(last_elv_points) > ALTITUDE_COMPARE_POINTS:
-            del last_elv_points[0]
+                    last_elv_avg = elv_avg
 
     return elv_gain
 

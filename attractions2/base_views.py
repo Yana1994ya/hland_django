@@ -66,6 +66,12 @@ class EditView(View, abc.ABC):
         instance.lat = cleaned_data["lat"]
         instance.long = cleaned_data["long"]
 
+        if cleaned_data["image"] is not None:
+            instance.main_image = models.ImageAsset.upload_file(
+                cleaned_data["image"],
+                old_asset=instance.main_image
+            )
+
     def handle_m2m(self, instance: models.Attraction, cleaned_data: dict) -> NoReturn:
         pass
 

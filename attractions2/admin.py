@@ -1,4 +1,5 @@
 # Register your models here.
+
 from django.contrib import admin
 
 from attractions2 import models, base_models
@@ -85,3 +86,51 @@ class MuseumDomainAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.MuseumDomain, MuseumDomainAdmin)
+
+
+class GoogleUserAdmin(admin.ModelAdmin):
+    pass
+
+
+admin.site.register(models.GoogleUser, GoogleUserAdmin)
+
+
+class PackageAdmin(admin.ModelAdmin):
+    pass
+
+
+admin.site.register(models.Package, PackageAdmin)
+
+
+class TourDestinationAdmin(admin.ModelAdmin):
+    pass
+
+
+admin.site.register(models.TourDestination, TourDestinationAdmin)
+
+
+class TourLanguageAdmin(admin.ModelAdmin):
+    pass
+
+
+admin.site.register(models.TourLanguage, TourLanguageAdmin)
+
+
+class TourReservationAdmin(admin.ModelAdmin):
+    list_select_related = (
+        'tour',
+        'tour__package',
+        'user',
+    )
+
+    list_display = (
+        'user_name',
+        'user_email',
+        'tour_name',
+        'price',
+        'group',
+        'tour_package'
+    )
+
+
+admin.site.register(models.TourReservation, TourReservationAdmin)
